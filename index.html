@@ -1,16 +1,28 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gemini 4 Carbon vs Claude Fable 5.2 · Ботанутый Костя</title>
-<meta name="description" content="Битва нейросетей: Gemini 4 Carbon против Claude Fable 5.2. Гонка, воксельная диорама и заставка канала: играйте прямо в браузере. Счёт 2:1.">
-<meta property="og:title" content="Gemini 4 Carbon vs Claude Fable 5.2: 3 теста, один промпт">
-<meta property="og:description" content="Гонка, диорама и заставка канала. Играйте прямо в браузере. Счёт 2:1.">
+<title>Gemini 4 Carbon vs Claude Fable 5.2 · AI model battle</title>
+<meta name="description" content="AI model battle: Google Gemini 4 Carbon vs Anthropic Claude Fable 5.2. A neon racer, a voxel diorama and a channel intro: play them right in your browser. Score 2:1.">
+<meta property="og:title" content="Gemini 4 Carbon vs Claude Fable 5.2: 3 tests, one prompt each">
+<meta property="og:description" content="A neon racer, a voxel diorama and a channel intro. Play them in your browser. Score 2:1.">
 <meta property="og:image" content="https://kostikoneuro.github.io/gemini-carbon-vs-fable-5-2/assets/cover.jpg">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="assets/hamster.svg" type="image/svg+xml">
+<script>
+  /* language: ?lang=ru / #ru (also saved), else the saved choice, else English */
+  (function () {
+    var l = 'en', forced = false;
+    try { var s = localStorage.getItem('kk-lang'); if (s === 'ru' || s === 'en') l = s; } catch (e) {}
+    var q = /[?&]lang=(ru|en)\b/.exec(location.search); if (q) { l = q[1]; forced = true; }
+    var h = location.hash.slice(1).toLowerCase(); if (h === 'ru' || h === 'en') { l = h; forced = true; }
+    if (forced) { try { localStorage.setItem('kk-lang', l); } catch (e) {} }
+    document.documentElement.lang = l;
+    if (l === 'ru') document.documentElement.classList.add('ru');
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Manrope:wght@500;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
@@ -23,6 +35,8 @@
   }
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
+  /* language switch: English by default, html.ru shows Russian */
+  html:not(.ru) .l-ru, html.ru .l-en { display: none !important; }
   body {
     margin: 0; color: var(--ink); font: 600 16px/1.55 Manrope, system-ui, "Segoe UI", sans-serif;
     background-color: var(--paper);
@@ -46,7 +60,7 @@
   .brand img { width: 52px; height: 48px; }
   .brand b { font-family: Unbounded; font-weight: 900; font-size: 19px; line-height: 1.05; text-shadow: 2px 2px 0 var(--cyan); }
   .brand small { display: block; font-size: 12px; color: var(--muted); font-weight: 700; }
-  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .chip {
     display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 3px solid var(--ink); border-radius: 999px;
     background: var(--card); box-shadow: 3px 3px 0 var(--ink); font-weight: 800; font-size: 14px; text-decoration: none; white-space: nowrap;
@@ -54,6 +68,13 @@
   }
   a.chip:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--ink); }
   .chip.soon { background: var(--yellow); }
+  .lang { display: inline-flex; border: 3px solid var(--ink); border-radius: 999px; box-shadow: 3px 3px 0 var(--ink); overflow: hidden; background: var(--card); }
+  .lang button {
+    font: 900 13px/1 Unbounded, sans-serif; color: var(--ink); background: transparent; border: 0; padding: 9px 12px; cursor: pointer; letter-spacing: .02em;
+  }
+  .lang button + button { border-left: 3px solid var(--ink); }
+  .lang button[aria-pressed="true"] { background: var(--ink); color: var(--yellow); }
+  .lang button:focus-visible { outline: 3px solid var(--cyan); outline-offset: -3px; }
 
   /* ---------- hero ---------- */
   .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 28px; align-items: center; margin-bottom: 34px; }
@@ -61,8 +82,7 @@
   .hero h1 { font-weight: 900; font-size: clamp(34px, 6vw, 62px); line-height: 1.02; text-shadow: 4px 4px 0 var(--cyan); }
   .hero h1 .vs { display: inline-block; font-size: .55em; background: var(--yellow); border: var(--b) solid var(--ink); border-radius: 14px; padding: 0 .28em; box-shadow: 4px 4px 0 var(--ink); text-shadow: none; transform: rotate(-6deg) translateY(-.12em); margin: 0 .08em; }
   .hero h1 .c { color: var(--carbon); } .hero h1 .f { color: var(--fable); }
-  .lead { font-size: 18px; margin: 16px 0 6px; max-width: 34em; }
-  .en { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+  .lead { font-size: 18px; margin: 16px 0 16px; max-width: 34em; }
   .rules { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
   .rule { display: inline-flex; align-items: center; gap: 7px; font-weight: 800; font-size: 14px; }
   .tick { width: 24px; height: 24px; border: 3px solid var(--ink); border-radius: 7px; background: var(--card); box-shadow: 2px 2px 0 var(--ink); display: grid; place-items: center; color: var(--good); font-size: 15px; line-height: 1; }
@@ -94,7 +114,7 @@
   /* ---------- section headings ---------- */
   .sec-h { display: flex; align-items: baseline; gap: 12px; margin: 0 0 16px; flex-wrap: wrap; }
   .sec-h h2 { font-weight: 900; font-size: clamp(24px, 3.6vw, 34px); text-shadow: 3px 3px 0 var(--cyan); }
-  .sec-h span { color: var(--muted); font-size: 14px; }
+  .sec-h > span { color: var(--muted); font-size: 14px; }
 
   /* ---------- tests ---------- */
   .test { position: relative; background: var(--card); border: var(--b) solid var(--ink); border-radius: var(--r); box-shadow: var(--sh); padding: 20px; margin-bottom: 28px; }
@@ -131,8 +151,10 @@
   details.prompt summary::-webkit-details-marker { display: none; }
   details.prompt summary::before { content: "▸"; font-size: 14px; transition: transform .15s; }
   details.prompt[open] summary::before { transform: rotate(90deg); }
-  details.prompt summary a { font-weight: 700; font-size: 13px; color: var(--muted); margin-left: auto; }
+  details.prompt summary .plinks { margin-left: auto; display: inline-flex; gap: 12px; flex-wrap: wrap; }
+  details.prompt summary .plinks a { font-weight: 700; font-size: 13px; color: var(--muted); }
   details.prompt .ptext { padding: 0 16px 14px; white-space: pre-wrap; font-size: 14.5px; line-height: 1.5; margin: 0; font-family: Manrope, sans-serif; font-weight: 600; }
+  details.prompt .pnote { padding: 0 16px; margin: 0 0 8px; font-size: 13px; color: var(--muted); }
   .note { font-size: 13.5px; color: var(--muted); margin: 10px 0 0; }
 
   /* ---------- money ---------- */
@@ -188,6 +210,7 @@
     thead th { font-size: 12px; }
     td small { font-size: 11px; }
     .chip { padding: 5px 10px; font-size: 13px; }
+    .lang button { padding: 8px 10px; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -197,11 +220,14 @@
 
   <header class="top">
     <a class="brand" href="https://www.youtube.com/@kosti_neuro" target="_blank" rel="noopener">
-      <img src="assets/hamster.svg" alt="Хомяк-ботаник">
-      <span><b>Ботанутый Костя</b><small>тесты нейросетей · AI model battles</small></span>
+      <img src="assets/hamster.svg" alt="Nerd hamster">
+      <span><b>Ботанутый Костя</b><small><span class="l-en">AI model battles · YouTube</span><span class="l-ru">тесты нейросетей · YouTube</span></small></span>
     </a>
     <nav class="chips">
-      <span class="chip soon" title="Ссылка на ролик появится здесь">🎬 Видео: скоро</span>
+      <div class="lang" role="group" aria-label="Language / Язык">
+        <button type="button" data-set-lang="en" aria-pressed="true">EN</button><button type="button" data-set-lang="ru" aria-pressed="false">RU</button>
+      </div>
+      <span class="chip soon">🎬 <span class="l-en">Video: coming soon</span><span class="l-ru">Видео: скоро</span></span>
       <a class="chip" href="https://t.me/kostik_neuro" target="_blank" rel="noopener">✈️ Telegram</a>
       <a class="chip" href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2" target="_blank" rel="noopener">⌨️ GitHub</a>
     </nav>
@@ -209,20 +235,20 @@
 
   <section class="hero">
     <div>
-      <div class="kicker">БИТВА НЕЙРОСЕТЕЙ · 3 ТЕСТА</div>
+      <div class="kicker"><span class="l-en">AI MODEL BATTLE · 3 TESTS</span><span class="l-ru">БИТВА НЕЙРОСЕТЕЙ · 3 ТЕСТА</span></div>
       <h1><span class="c">Gemini 4 Carbon</span> <span class="vs">vs</span> <span class="f">Claude Fable&nbsp;5.2</span></h1>
-      <p class="lead">Одинаковые короткие промпты, без подсказок и правок. Каждая модель сама пишет, запускает и проверяет свою работу. Всё, что они сделали, открывается прямо здесь, в браузере.</p>
-      <p class="en">Same short prompts, no hints, no fixes. Play every result right in your browser.</p>
+      <p class="lead l-en">The same short prompts, no hints, no fixes. Each model writes, runs and checks its own work. Everything they made opens right here, in your browser.</p>
+      <p class="lead l-ru">Одинаковые короткие промпты, без подсказок и правок. Каждая модель сама пишет, запускает и проверяет свою работу. Всё, что они сделали, открывается прямо здесь, в браузере.</p>
       <div class="rules">
-        <span class="rule"><span class="tick">✓</span>1 промпт</span>
-        <span class="rule"><span class="tick">✓</span>0 правок</span>
-        <span class="rule"><span class="tick">✓</span>свой харнес у каждой</span>
+        <span class="rule"><span class="tick">✓</span><span class="l-en">1 prompt</span><span class="l-ru">1 промпт</span></span>
+        <span class="rule"><span class="tick">✓</span><span class="l-en">0 fixes</span><span class="l-ru">0 правок</span></span>
+        <span class="rule"><span class="tick">✓</span><span class="l-en">each in its native harness</span><span class="l-ru">свой харнес у каждой</span></span>
       </div>
     </div>
-    <div class="cover"><span class="tape"></span><img src="assets/cover.jpg" width="1280" height="720" alt="Обложка ролика: Gemini 4 Carbon против Claude Fable 5.2"></div>
+    <div class="cover"><span class="tape"></span><img src="assets/cover.jpg" width="1280" height="720" alt="Video cover: Gemini 4 Carbon vs Claude Fable 5.2"></div>
   </section>
 
-  <section class="board" aria-label="Счёт">
+  <section class="board" aria-label="Score">
     <img class="hamster-peek" src="assets/hamster.svg" alt="">
     <div class="fighter carbon">
       <div class="logo"><img src="assets/gemini.png" alt="Gemini"></div>
@@ -236,7 +262,7 @@
       <div class="vsbadge">VS</div>
       <div>
         <div class="digits"><span class="c">2</span><span class="col">:</span><span class="f">1</span></div>
-        <div class="verdict"><span class="stamp">ПОБЕДА CARBON</span></div>
+        <div class="verdict"><span class="stamp"><span class="l-en">CARBON WINS</span><span class="l-ru">ПОБЕДА CARBON</span></span></div>
       </div>
     </div>
     <div class="fighter fable">
@@ -249,36 +275,52 @@
     </div>
   </section>
 
-  <div class="sec-h"><h2>Тесты</h2><span>кнопки открывают тест в новой вкладке · в каждом тесте есть «← Ко всем тестам»</span></div>
+  <div class="sec-h"><h2><span class="l-en">The tests</span><span class="l-ru">Тесты</span></h2>
+    <span class="l-en">buttons open each test in a new tab · every test has a “← All tests” button</span>
+    <span class="l-ru">кнопки открывают тест в новой вкладке · в каждом тесте есть кнопка «← Ко всем тестам»</span></div>
 
   <!-- 1 -->
   <article class="test" id="race">
     <div class="test-head">
       <div class="num">1</div>
       <div>
-        <h3>Спидран: аркадная гонка «Neon Night Racer»</h3>
-        <p class="desc">Ночное шоссе, synthwave-город, 80-е, «до аварии одна ошибка». Музыка и звук кодом, один index.html.</p>
-        <span class="winner-tag">🏆 Раунд за Carbon</span>
+        <h3><span class="l-en">Speedrun: arcade racer “Neon Night Racer”</span><span class="l-ru">Спидран: аркадная гонка «Neon Night Racer»</span></h3>
+        <p class="desc l-en">A night highway, a synthwave city, the 80s, “one mistake and you crash”. Music and sound in code, one index.html.</p>
+        <p class="desc l-ru">Ночное шоссе, synthwave-город, 80-е, «до аварии одна ошибка». Музыка и звук кодом, один index.html.</p>
+        <span class="winner-tag">🏆 <span class="l-en">Round to Carbon</span><span class="l-ru">Раунд за Carbon</span></span>
       </div>
     </div>
     <div class="duel">
       <div class="side carbon win">
-        <span class="crown">🏆 Победа</span>
+        <span class="crown">🏆 <span class="l-en">Winner</span><span class="l-ru">Победа</span></span>
         <div class="side-top"><img src="assets/gemini.png" alt=""><b>Gemini 4 Carbon</b></div>
         <div class="stats"><span class="stat">⏱ 25:13</span><span class="stat">💸 $1.76</span></div>
-        <div class="keys">Three.js-гонка с выбором из 3 машин, встречкой x2, near-miss, турбо и щитом. <kbd>A</kbd>/<kbd>D</kbd> или <kbd>←</kbd><kbd>→</kbd> руль, <kbd>W</kbd> газ, <kbd>S</kbd> тормоз, <kbd>Space</kbd>/<kbd>Shift</kbd> турбо, <kbd>C</kbd> камера, <kbd>M</kbd> звук, <kbd>R</kbd> заново.</div>
-        <a class="btn" href="1-race/carbon/" target="_blank" rel="noopener">▶ Играть <span class="tab">↗ новая вкладка</span></a>
+        <div class="keys l-en">Three.js racer: pick one of 3 cars, oncoming lanes score x2, near-misses, turbo and a one-time shield. <kbd>A</kbd>/<kbd>D</kbd> or <kbd>←</kbd><kbd>→</kbd> steer, <kbd>W</kbd> throttle, <kbd>S</kbd> brake, <kbd>Space</kbd>/<kbd>Shift</kbd> turbo, <kbd>C</kbd> camera, <kbd>M</kbd> sound, <kbd>R</kbd> retry.</div>
+        <div class="keys l-ru">Three.js-гонка с выбором из 3 машин, встречкой x2, near-miss, турбо и щитом. <kbd>A</kbd>/<kbd>D</kbd> или <kbd>←</kbd><kbd>→</kbd> руль, <kbd>W</kbd> газ, <kbd>S</kbd> тормоз, <kbd>Space</kbd>/<kbd>Shift</kbd> турбо, <kbd>C</kbd> камера, <kbd>M</kbd> звук, <kbd>R</kbd> заново.</div>
+        <a class="btn" href="1-race/carbon/" target="_blank" rel="noopener">▶ <span class="l-en">Play</span><span class="l-ru">Играть</span> <span class="tab">↗ <span class="l-en">new tab</span><span class="l-ru">новая вкладка</span></span></a>
       </div>
       <div class="side fable">
         <div class="side-top"><img src="assets/claude.png" alt=""><b>Claude Fable 5.2</b></div>
         <div class="stats"><span class="stat">⏱ 43:08</span><span class="stat">💸 $13.71</span></div>
-        <div class="keys">Пять секторов, цепь near-miss до x10, овердрайв, который сносит трафик, рекорды с инициалами. <kbd>←</kbd><kbd>→</kbd> или <kbd>A</kbd>/<kbd>D</kbd> руль, <kbd>↓</kbd> тормоз, <kbd>Space</kbd> овердрайв, <kbd>Enter</kbd> старт, <kbd>P</kbd> пауза, <kbd>M</kbd> звук.</div>
-        <a class="btn" href="1-race/fable/" target="_blank" rel="noopener">▶ Играть <span class="tab">↗ новая вкладка</span></a>
+        <div class="keys l-en">Five sectors, a near-miss chain up to x10, an overdrive that smashes through traffic, high scores with initials. <kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd>/<kbd>D</kbd> steer, <kbd>↓</kbd> brake, <kbd>Space</kbd> overdrive, <kbd>Enter</kbd> start, <kbd>P</kbd> pause, <kbd>M</kbd> sound.</div>
+        <div class="keys l-ru">Пять секторов, цепь near-miss до x10, овердрайв, который сносит трафик, рекорды с инициалами. <kbd>←</kbd><kbd>→</kbd> или <kbd>A</kbd>/<kbd>D</kbd> руль, <kbd>↓</kbd> тормоз, <kbd>Space</kbd> овердрайв, <kbd>Enter</kbd> старт, <kbd>P</kbd> пауза, <kbd>M</kbd> звук.</div>
+        <a class="btn" href="1-race/fable/" target="_blank" rel="noopener">▶ <span class="l-en">Play</span><span class="l-ru">Играть</span> <span class="tab">↗ <span class="l-en">new tab</span><span class="l-ru">новая вкладка</span></span></a>
       </div>
     </div>
     <details class="prompt">
-      <summary>📝 Промпт <a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/prompts/1-race.md" target="_blank" rel="noopener">prompts/1-race.md</a></summary>
-      <p class="ptext">Сделай браузерную аркадную гонку «Neon Night Racer»: ночное шоссе, неоновый synthwave-город, 80-е.
+      <summary>📝 <span class="l-en">The prompt</span><span class="l-ru">Промпт</span>
+        <span class="plinks"><a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/prompts/1-race.md" target="_blank" rel="noopener">RU original</a><a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/prompts/en/1-race.md" target="_blank" rel="noopener">EN translation</a></span></summary>
+      <p class="pnote l-en">English translation. The models got the Russian original.</p>
+      <p class="ptext l-en">Make a browser arcade racer "Neon Night Racer": a night highway, a neon synthwave city, the 80s.
+
+The main thing is the feeling of insane speed at night, when one mistake means a crash.
+
+Imagine it's a game for a real arcade cabinet: you want to play it again. Surprise me.
+
+Music and sounds in code, no external files. The result is one index.html, libraries from a CDN are fine.
+
+Don't ask questions: build it, play it yourself, fix what's broken.</p>
+      <p class="ptext l-ru">Сделай браузерную аркадную гонку «Neon Night Racer»: ночное шоссе, неоновый synthwave-город, 80-е.
 
 Главное - ощущение бешеной скорости ночью, когда до аварии одна ошибка.
 
@@ -295,29 +337,43 @@
     <div class="test-head">
       <div class="num">2</div>
       <div>
-        <h3>Диорама вслепую: ночной рынок Шэньчжэня из кубиков</h3>
-        <p class="desc">Воксельная 3D-сцена после дождя: пар над воками, неон, провода, скутеры, маленькие люди. При открытии сразу 30-секундный облёт, <kbd>C</kbd> = свободная камера. В ролике варианты шли вслепую: «Вариант 1» = Carbon, «Вариант 2» = Fable.</p>
-        <span class="winner-tag">🏆 Раунд за Carbon</span>
+        <h3><span class="l-en">Blind diorama: a Shenzhen night market made of cubes</span><span class="l-ru">Диорама вслепую: ночной рынок Шэньчжэня из кубиков</span></h3>
+        <p class="desc l-en">A voxel 3D scene after the rain: steam over the woks, neon, wires, scooters, tiny people. A 30-second fly-through starts as soon as it opens, <kbd>C</kbd> = free camera. In the video they were shown blind: “Variant 1” = Carbon, “Variant 2” = Fable.</p>
+        <p class="desc l-ru">Воксельная 3D-сцена после дождя: пар над воками, неон, провода, скутеры, маленькие люди. При открытии сразу 30-секундный облёт, <kbd>C</kbd> = свободная камера. В ролике варианты шли вслепую: «Вариант 1» = Carbon, «Вариант 2» = Fable.</p>
+        <span class="winner-tag">🏆 <span class="l-en">Round to Carbon</span><span class="l-ru">Раунд за Carbon</span></span>
       </div>
     </div>
     <div class="duel">
       <div class="side carbon win">
-        <span class="crown">🏆 Победа</span>
+        <span class="crown">🏆 <span class="l-en">Winner</span><span class="l-ru">Победа</span></span>
         <div class="side-top"><img src="assets/gemini.png" alt=""><b>Gemini 4 Carbon</b></div>
-        <div class="stats"><span class="stat">Вариант 1</span><span class="stat">⏱ 57:29</span><span class="stat">💸 $2.81</span></div>
-        <div class="keys">Диорама на постаменте с разрезом улицы, зеркальные лужи, иероглифы из светящихся вокселей, 20+ человечков и рыжий кот. <kbd>C</kbd> свободная камера: мышь + <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, <kbd>Q</kbd>/<kbd>E</kbd>.</div>
-        <a class="btn" href="2-diorama/carbon/" target="_blank" rel="noopener">▶ Смотреть <span class="tab">↗ новая вкладка</span></a>
+        <div class="stats"><span class="stat"><span class="l-en">Variant 1</span><span class="l-ru">Вариант 1</span></span><span class="stat">⏱ 57:29</span><span class="stat">💸 $2.81</span></div>
+        <div class="keys l-en">A diorama on a plinth with a cut-away street, mirror puddles, signs made of glowing voxels, 20+ tiny people and a ginger cat. <kbd>C</kbd> free camera: mouse + <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, <kbd>Q</kbd>/<kbd>E</kbd>.</div>
+        <div class="keys l-ru">Диорама на постаменте с разрезом улицы, зеркальные лужи, иероглифы из светящихся вокселей, 20+ человечков и рыжий кот. <kbd>C</kbd> свободная камера: мышь + <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, <kbd>Q</kbd>/<kbd>E</kbd>.</div>
+        <a class="btn" href="2-diorama/carbon/" target="_blank" rel="noopener">▶ <span class="l-en">Watch</span><span class="l-ru">Смотреть</span> <span class="tab">↗ <span class="l-en">new tab</span><span class="l-ru">новая вкладка</span></span></a>
       </div>
       <div class="side fable">
         <div class="side-top"><img src="assets/claude.png" alt=""><b>Claude Fable 5.2</b></div>
-        <div class="stats"><span class="stat">Вариант 2</span><span class="stat">⏱ 43:22</span><span class="stat">💸 $12.44</span></div>
-        <div class="keys">Пять домов «городской деревни», воки с огнём, магазин 24H, курьеры на скутерах, капли и круги в лужах. <kbd>C</kbd> свободная камера (мышь), <kbd>Space</kbd> пауза мира.</div>
-        <a class="btn" href="2-diorama/fable/" target="_blank" rel="noopener">▶ Смотреть <span class="tab">↗ новая вкладка</span></a>
+        <div class="stats"><span class="stat"><span class="l-en">Variant 2</span><span class="l-ru">Вариант 2</span></span><span class="stat">⏱ 43:22</span><span class="stat">💸 $12.44</span></div>
+        <div class="keys l-en">Five “urban village” houses, flaming woks, a 24H shop, couriers on scooters, drips and ripples in the puddles. <kbd>C</kbd> free camera (mouse), <kbd>Space</kbd> pauses the world.</div>
+        <div class="keys l-ru">Пять домов «городской деревни», воки с огнём, магазин 24H, курьеры на скутерах, капли и круги в лужах. <kbd>C</kbd> свободная камера (мышь), <kbd>Space</kbd> пауза мира.</div>
+        <a class="btn" href="2-diorama/fable/" target="_blank" rel="noopener">▶ <span class="l-en">Watch</span><span class="l-ru">Смотреть</span> <span class="tab">↗ <span class="l-en">new tab</span><span class="l-ru">новая вкладка</span></span></a>
       </div>
     </div>
     <details class="prompt">
-      <summary>📝 Промпт <a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/prompts/2-diorama.md" target="_blank" rel="noopener">prompts/2-diorama.md</a></summary>
-      <p class="ptext">Сделай в браузере воксельную 3D-диораму ночного рынка в Шэньчжэне.
+      <summary>📝 <span class="l-en">The prompt</span><span class="l-ru">Промпт</span>
+        <span class="plinks"><a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/prompts/2-diorama.md" target="_blank" rel="noopener">RU original</a><a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/prompts/en/2-diorama.md" target="_blank" rel="noopener">EN translation</a></span></summary>
+      <p class="pnote l-en">English translation. The models got the Russian original.</p>
+      <p class="ptext l-en">Make a voxel 3D diorama of a night market in Shenzhen in the browser.
+
+After the rain: steam over the woks, neon and lanterns, wires overhead, scooters, tiny people eating and haggling, wet asphalt reflecting the light. A tiny living world you want to pause and study.
+
+Imagine it's an entry in a diorama contest and the jury watches it for exactly 30 seconds. As soon as the page opens: a smooth looping 30-second camera fly-through, no UI. The C key switches to a free camera and back.
+
+Everything from cubes and in code, no models or textures. The result is one index.html, libraries from a CDN are fine.
+
+Don't ask questions: build it, watch the whole fly-through, fix whatever looks broken.</p>
+      <p class="ptext l-ru">Сделай в браузере воксельную 3D-диораму ночного рынка в Шэньчжэне.
 
 После дождя: пар над воками, неон и фонарики, провода над головой, скутеры, маленькие люди едят и торгуются, мокрый асфальт отражает свет. Крошечный живой мир, который хочется поставить на паузу и разглядывать.
 
@@ -334,9 +390,10 @@
     <div class="test-head">
       <div class="num">3</div>
       <div>
-        <h3>Заставка канала в OpenMontage</h3>
-        <p class="desc">10 секунд, 1920×1080, со звуком. Модель сама изучает канал по ссылке, придумывает идею и монтирует. Платная генерация только через kie.ai, не больше $1. Победитель открывает каждый ролик канала.</p>
-        <span class="winner-tag">👑 Раунд за Fable: новый «Король заставки»</span>
+        <h3><span class="l-en">Channel intro in OpenMontage</span><span class="l-ru">Заставка канала в OpenMontage</span></h3>
+        <p class="desc l-en">10 seconds, 1920×1080, with sound. The model studies the channel from its link by itself, comes up with an idea and edits it. Paid generation only through kie.ai, $1 max. The winner opens every video on the channel.</p>
+        <p class="desc l-ru">10 секунд, 1920×1080, со звуком. Модель сама изучает канал по ссылке, придумывает идею и монтирует. Платная генерация только через kie.ai, не больше $1. Победитель открывает каждый ролик канала.</p>
+        <span class="winner-tag">👑 <span class="l-en">Round to Fable: the channel's new “Intro King”</span><span class="l-ru">Раунд за Fable: новый «Король заставки»</span></span>
       </div>
     </div>
     <div class="duel">
@@ -344,19 +401,34 @@
         <div class="side-top"><img src="assets/gemini.png" alt=""><b>Gemini 4 Carbon</b></div>
         <div class="stats"><span class="stat">⏱ 44:22</span><span class="stat">💸 $2.97</span><span class="stat">kie $0.50</span></div>
         <video src="3-intro/carbon.mp4" poster="assets/poster-carbon.jpg" controls playsinline preload="none"></video>
-        <div class="keys"><b>«Краш-тест лаборатория».</b> Нода n8n запускает полигон «5 тестов · 1 шанс», хомяк в каске крутит колесо, пресс впечатывает «49/50», очки превращаются в шестерню аватара. kie: 2 картинки, Kling-видео, музыка Suno.</div>
+        <div class="keys l-en"><b>“Crash-test lab”.</b> An n8n node launches the “5 tests · 1 chance” rig, a hamster in a hard hat runs a wheel, a press stamps “49/50”, the glasses turn into the avatar's gear. kie: 2 images, a Kling video, Suno music.</div>
+        <div class="keys l-ru"><b>«Краш-тест лаборатория».</b> Нода n8n запускает полигон «5 тестов · 1 шанс», хомяк в каске крутит колесо, пресс впечатывает «49/50», очки превращаются в шестерню аватара. kie: 2 картинки, Kling-видео, музыка Suno.</div>
       </div>
       <div class="side fable win">
-        <span class="crown">👑 Король заставки</span>
+        <span class="crown">👑 <span class="l-en">Intro King</span><span class="l-ru">Король заставки</span></span>
         <div class="side-top"><img src="assets/claude.png" alt=""><b>Claude Fable 5.2</b></div>
         <div class="stats"><span class="stat">⏱ 38:23</span><span class="stat">💸 $15.56</span><span class="stat">kie $0.06</span></div>
         <video src="3-intro/fable.mp4" poster="assets/poster-fable.jpg" controls playsinline preload="none"></video>
-        <div class="keys"><b>«Очки ботана».</b> Всё в расфокусе, рука нащупывает круглые очки и надевает их на зрителя, в линзах проявляется хомяк-ботаник, потом название, пять галочек и штамп «10/10». Вся графика векторная, кодом; на kie только музыка Suno.</div>
+        <div class="keys l-en"><b>“Nerd glasses”.</b> Everything is out of focus, a hand gropes for round glasses and puts them on the viewer; a nerd hamster snaps into focus in the lenses, then the title, five ticks and a “10/10” stamp. All graphics are vector, drawn in code; kie was used only for Suno music.</div>
+        <div class="keys l-ru"><b>«Очки ботана».</b> Всё в расфокусе, рука нащупывает круглые очки и надевает их на зрителя, в линзах проявляется хомяк-ботаник, потом название, пять галочек и штамп «10/10». Вся графика векторная, кодом; на kie только музыка Suno.</div>
       </div>
     </div>
     <details class="prompt">
-      <summary>📝 Промпт <a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/prompts/3-intro.md" target="_blank" rel="noopener">prompts/3-intro.md</a></summary>
-      <p class="ptext">Сделай заставку для YouTube-канала «Ботанутый Костя» - 10 секунд, 1920×1080, со звуком.
+      <summary>📝 <span class="l-en">The prompt</span><span class="l-ru">Промпт</span>
+        <span class="plinks"><a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/prompts/3-intro.md" target="_blank" rel="noopener">RU original</a><a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/prompts/en/3-intro.md" target="_blank" rel="noopener">EN translation</a></span></summary>
+      <p class="pnote l-en">English translation. The models got the Russian original.</p>
+      <p class="ptext l-en">Make an intro for the YouTube channel «Ботанутый Костя» ("Nerdy Kostya"): 10 seconds, 1920×1080, with sound.
+
+Channel: https://www.youtube.com/@kosti_neuro. First study the channel yourself: what it's about, how it looks, what the author is like. The intro must be about this channel, not an abstract AI brand.
+
+Imagine it's an entry in an intro contest: the jury are the best motion designers in the world, and the winner will open every video on the channel. It needs an idea, not flying text. Surprise me.
+
+The name «Ботанутый Костя», exactly like that, must be readable on screen for at least the last 1.5 seconds.
+
+Work in OpenMontage, name the project intro-&lt;model&gt;. Paid generation only through kie.ai, no more than $1. All approvals are given in advance: go to the final mp4 without stopping.
+
+Don't ask questions. At the end: the path to the mp4, the idea in one paragraph, how much you spent on kie.ai and what you learned about the channel.</p>
+      <p class="ptext l-ru">Сделай заставку для YouTube-канала «Ботанутый Костя» - 10 секунд, 1920×1080, со звуком.
 
 Канал: https://www.youtube.com/@kosti_neuro. Сначала сам изучи канал: о чём он, как выглядит, какой характер у автора. Заставка должна быть про этот канал, а не про абстрактный AI-бренд.
 
@@ -368,36 +440,45 @@
 
 Не задавай вопросов. В конце: путь к mp4, идея в одном абзаце, сколько потратил на kie.ai и что ты узнал о канале.</p>
     </details>
-    <p class="note">Хомяк-ботаник в шапке этой страницы взят из заставки Fable 5.2: модель нарисовала его кодом.</p>
+    <p class="note l-en">The nerd hamster in this page's header comes from Fable 5.2's intro: the model drew it in code.</p>
+    <p class="note l-ru">Хомяк-ботаник в шапке этой страницы взят из заставки Fable 5.2: модель нарисовала его кодом.</p>
   </article>
 
   <!-- money -->
-  <div class="sec-h" id="cost"><h2>Время и деньги</h2><span>цены по официальному прайсу API</span></div>
+  <div class="sec-h" id="cost"><h2><span class="l-en">Time and money</span><span class="l-ru">Время и деньги</span></h2>
+    <span class="l-en">official API list prices</span><span class="l-ru">цены по официальному прайсу API</span></div>
   <div class="tiles">
-    <div class="tile c"><div class="lbl">Carbon · всего</div><div class="val">$7.54</div><div class="sub">2 ч 07 мин · + kie $0.50</div></div>
-    <div class="tile f"><div class="lbl">Fable 5.2 · всего</div><div class="val">$41.71</div><div class="sub">2 ч 05 мин · + kie $0.06</div></div>
-    <div class="tile y"><div class="lbl">Разница в цене</div><div class="val">×5.5</div><div class="sub">Carbon дешевле (×3.4 даже с его помощниками)</div></div>
-    <div class="tile"><div class="lbl">Правок использовано</div><div class="val">0 : 0</div><div class="sub">обе сделали всё с одного промпта</div></div>
+    <div class="tile c"><div class="lbl">Carbon · <span class="l-en">total</span><span class="l-ru">всего</span></div><div class="val">$7.54</div><div class="sub"><span class="l-en">2 h 07 min</span><span class="l-ru">2 ч 07 мин</span> · + kie $0.50</div></div>
+    <div class="tile f"><div class="lbl">Fable 5.2 · <span class="l-en">total</span><span class="l-ru">всего</span></div><div class="val">$41.71</div><div class="sub"><span class="l-en">2 h 05 min</span><span class="l-ru">2 ч 05 мин</span> · + kie $0.06</div></div>
+    <div class="tile y"><div class="lbl"><span class="l-en">Price gap</span><span class="l-ru">Разница в цене</span></div><div class="val">×5.5</div><div class="sub"><span class="l-en">Carbon is cheaper (×3.4 even with its helper)</span><span class="l-ru">Carbon дешевле (×3.4 даже с его помощником)</span></div></div>
+    <div class="tile"><div class="lbl"><span class="l-en">Fixes used</span><span class="l-ru">Правок использовано</span></div><div class="val">0 : 0</div><div class="sub"><span class="l-en">both did everything from one prompt</span><span class="l-ru">обе сделали всё с одного промпта</span></div></div>
   </div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Тест</th><th class="c">Gemini 4 Carbon</th><th class="f">Claude Fable 5.2</th></tr></thead>
+      <thead><tr><th><span class="l-en">Test</span><span class="l-ru">Тест</span></th><th class="c">Gemini 4 Carbon</th><th class="f">Claude Fable 5.2</th></tr></thead>
       <tbody>
-        <tr><td>1 · Гонка</td><td>25:13 · $1.76<small>+ до $0.54 браузерный помощник</small></td><td>43:08 · $13.71</td></tr>
-        <tr><td>2 · Диорама</td><td>57:29 · $2.81<small>+ до $3.49 браузерный помощник</small></td><td>43:22 · $12.44</td></tr>
-        <tr><td>3 · Заставка</td><td>44:22 · $2.97 + kie $0.50<small>+ до $0.79 помощник</small></td><td>38:23 · $15.56 + kie $0.06</td></tr>
-        <tr><td>Итого</td><td>~2 ч 07 мин · $7.54<small>до $12.36 с помощниками, + kie $0.50</small></td><td>~2 ч 05 мин · $41.71<small>+ kie $0.06</small></td></tr>
+        <tr><td><span class="l-en">1 · Race</span><span class="l-ru">1 · Гонка</span></td><td>25:13 · $1.76<small><span class="l-en">+ up to $0.54 browser helper</span><span class="l-ru">+ до $0.54 браузерный помощник</span></small></td><td>43:08 · $13.71</td></tr>
+        <tr><td><span class="l-en">2 · Diorama</span><span class="l-ru">2 · Диорама</span></td><td>57:29 · $2.81<small><span class="l-en">+ up to $3.49 browser helper</span><span class="l-ru">+ до $3.49 браузерный помощник</span></small></td><td>43:22 · $12.44</td></tr>
+        <tr><td><span class="l-en">3 · Intro</span><span class="l-ru">3 · Заставка</span></td><td>44:22 · $2.97 + kie $0.50<small><span class="l-en">+ up to $0.79 helper</span><span class="l-ru">+ до $0.79 помощник</span></small></td><td>38:23 · $15.56 + kie $0.06</td></tr>
+        <tr><td><span class="l-en">Total</span><span class="l-ru">Итого</span></td><td><span class="l-en">~2 h 07 min</span><span class="l-ru">~2 ч 07 мин</span> · $7.54<small><span class="l-en">up to $12.36 with the helper, + kie $0.50</span><span class="l-ru">до $12.36 с помощником, + kie $0.50</span></small></td><td><span class="l-en">~2 h 05 min</span><span class="l-ru">~2 ч 05 мин</span> · $41.71<small>+ kie $0.06</small></td></tr>
       </tbody>
     </table>
   </div>
-  <p class="fine">Carbon: $2 вход / $0.10 кэш / $10 выход за 1M токенов (вводная цена до 30.11, с 01.12 вдвое выше). Fable 5.2: $8 / $0.20 / $40. Antigravity сам запускает браузерного помощника на Gemini 3.8 Flash (играет в игру, смотрит облёт, открывает канал); его стоимость посчитана по ценам Carbon, поэтому это верхняя граница.</p>
+  <p class="fine l-en">Carbon: $2 in / $0.10 cache / $10 out per 1M tokens (introductory price until Nov 30, twice as much from Dec 1). Fable 5.2: $8 / $0.20 / $40. Antigravity starts its own browser helper on Gemini 3.8 Flash (it plays the game, watches the fly-through, opens the channel); I priced it at Carbon's rates, so it is an upper bound.</p>
+  <p class="fine l-ru">Carbon: $2 вход / $0.10 кэш / $10 выход за 1M токенов (вводная цена до 30.11, с 01.12 вдвое выше). Fable 5.2: $8 / $0.20 / $40. Antigravity сам запускает браузерного помощника на Gemini 3.8 Flash (играет в игру, смотрит облёт, открывает канал); его стоимость посчитана по ценам Carbon, поэтому это верхняя граница.</p>
 
   <!-- how -->
-  <div class="sec-h" id="how" style="margin-top:36px"><h2>Как запускали</h2><span>how it was run</span></div>
+  <div class="sec-h" id="how" style="margin-top:36px"><h2><span class="l-en">How it was run</span><span class="l-ru">Как запускали</span></h2></div>
   <div class="how-grid">
     <div class="how-card">
       <h3 style="color:#2a62d6">Gemini 4 Carbon</h3>
-      <ul>
+      <ul class="l-en">
+        <li>Google's <b>Antigravity</b> app, thinking <b>High</b> (the maximum Antigravity offers).</li>
+        <li>A new conversation per test; I pasted the prompt by hand.</li>
+        <li>Antigravity adds its own browser helper on Gemini 3.8 Flash for self-checks.</li>
+        <li>The first speedrun attempt broke three times on a network timeout (<span class="mono">The stream was interrupted</span>) and cost $0.68; it is not in the table.</li>
+      </ul>
+      <ul class="l-ru">
         <li>Приложение Google <b>Antigravity</b>, thinking <b>High</b> (максимум в Antigravity).</li>
         <li>Каждый тест в новой беседе, промпт вставлял я сам, вручную.</li>
         <li>Antigravity сам подключает браузерного помощника на Gemini 3.8 Flash для самопроверки.</li>
@@ -406,15 +487,25 @@
     </div>
     <div class="how-card">
       <h3 style="color:#c4561f">Claude Fable 5.2</h3>
-      <ul>
+      <ul class="l-en">
+        <li><b>Claude Code</b> 2.1.321, effort <b>High</b>.</li>
+        <li>A headless Playwright browser, so the model can play and look at its own work.</li>
+        <li>A new session per test, in a clean folder.</li>
+      </ul>
+      <ul class="l-ru">
         <li><b>Claude Code</b> 2.1.321, усилие <b>High</b>.</li>
         <li>Headless-браузер Playwright, чтобы модель сама играла и смотрела свою работу.</li>
         <li>Каждый тест в новой сессии, в чистой папке.</li>
       </ul>
     </div>
     <div class="how-card wide">
-      <h3>Общие правила</h3>
-      <ul>
+      <h3><span class="l-en">Shared rules</span><span class="l-ru">Общие правила</span></h3>
+      <ul class="l-en">
+        <li>The same short Russian prompt, at most one fix in words. Neither model needed a fix, and neither stopped to ask for approval.</li>
+        <li>The models did not see the scoring criteria. The diorama was judged blind in the video.</li>
+        <li>The intro was made in <a href="https://github.com/calesthio/OpenMontage" target="_blank" rel="noopener">OpenMontage</a>; paid generation only through kie.ai, $1 cap.</li>
+      </ul>
+      <ul class="l-ru">
         <li>Один и тот же короткий русский промпт, максимум одна правка словами. Правка не понадобилась никому, на согласовании никто не вставал.</li>
         <li>Модели не видели критериев оценки. Диорама в ролике показывалась вслепую.</li>
         <li>Заставка делалась в <a href="https://github.com/calesthio/OpenMontage" target="_blank" rel="noopener">OpenMontage</a>; платная генерация только через kie.ai, лимит $1.</li>
@@ -424,8 +515,24 @@
 
   <footer>
     <img src="assets/hamster.svg" alt="">
-    <p>Сделано для YouTube-канала <a href="https://www.youtube.com/@kosti_neuro" target="_blank" rel="noopener"><b>Ботанутый Костя</b></a> · <a href="https://t.me/kostik_neuro" target="_blank" rel="noopener">Telegram</a> · <a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2" target="_blank" rel="noopener">GitHub</a><br>Оценки и мнения мои. Код игр и диорам написан моделями, я добавил только кнопку «← Ко всем тестам».</p>
+    <p class="l-en">Made for the YouTube channel <a href="https://www.youtube.com/@kosti_neuro" target="_blank" rel="noopener"><b>Ботанутый Костя</b></a> · <a href="https://t.me/kostik_neuro" target="_blank" rel="noopener">Telegram</a> · <a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2" target="_blank" rel="noopener">GitHub</a><br>Scores and opinions are my own. The games and dioramas were written by the models; I only added the “← All tests” button.</p>
+    <p class="l-ru">Сделано для YouTube-канала <a href="https://www.youtube.com/@kosti_neuro" target="_blank" rel="noopener"><b>Ботанутый Костя</b></a> · <a href="https://t.me/kostik_neuro" target="_blank" rel="noopener">Telegram</a> · <a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2" target="_blank" rel="noopener">GitHub</a><br>Оценки и мнения мои. Код игр и диорам написан моделями, я добавил только кнопку «← Ко всем тестам».</p>
   </footer>
 </main>
+<script>
+  (function () {
+    var TITLES = { en: 'Gemini 4 Carbon vs Claude Fable 5.2 · AI model battle', ru: 'Gemini 4 Carbon vs Claude Fable 5.2 · Битва нейросетей' };
+    var btns = document.querySelectorAll('[data-set-lang]');
+    function apply(l, save) {
+      document.documentElement.lang = l;
+      document.documentElement.classList.toggle('ru', l === 'ru');
+      document.title = TITLES[l];
+      for (var i = 0; i < btns.length; i++) btns[i].setAttribute('aria-pressed', String(btns[i].getAttribute('data-set-lang') === l));
+      if (save) { try { localStorage.setItem('kk-lang', l); } catch (e) {} }
+    }
+    for (var i = 0; i < btns.length; i++) btns[i].addEventListener('click', function () { apply(this.getAttribute('data-set-lang'), true); });
+    apply(document.documentElement.lang === 'ru' ? 'ru' : 'en', false);
+  })();
+</script>
 </body>
 </html>

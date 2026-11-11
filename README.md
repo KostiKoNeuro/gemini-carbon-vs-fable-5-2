@@ -2,11 +2,11 @@
 
 Two top models, the same short prompts, one prompt per test, no fixes. Each model runs in its own native harness and writes, runs and checks its own work. Final score **2 : 1 for Carbon** (race and diorama to Carbon, the intro to Fable).
 
-**▶ Play in your browser:** https://kostikoneuro.github.io/gemini-carbon-vs-fable-5-2/
+**▶ Play in your browser:** https://kostikoneuro.github.io/gemini-carbon-vs-fable-5-2/ (English / [русский](https://kostikoneuro.github.io/gemini-carbon-vs-fable-5-2/?lang=ru))
 **🎬 Video (Russian):** coming soon
 **💬 Telegram:** https://t.me/kostik_neuro
 
-> Русский: все игры и диорамы открываются прямо в браузере по ссылке выше, в каждой есть кнопка «← Ко всем тестам». Промпты в папке [`prompts/`](prompts/).
+> Русский: страница на русском: https://kostikoneuro.github.io/gemini-carbon-vs-fable-5-2/?lang=ru. Все игры и диорамы открываются прямо в браузере, в каждой есть кнопка «← Ко всем тестам». Промпты в папке [`prompts/`](prompts/).
 
 ## The tests
 
@@ -20,7 +20,7 @@ Controls in the race: Carbon: A/D or ←/→ steer, W throttle, S brake, **Space
 
 Diorama: Carbon: C = free camera (mouse + WASD, Q/E). Fable: C = free camera (mouse), Space = pause the world.
 
-The exact prompts (Russian, short on purpose) are in [`prompts/`](prompts/). The only change I made to the models' code is a small "← Ко всем тестам" (back to all tests) link in the top-left corner of each game and diorama.
+The exact prompts (Russian, short on purpose) are in [`prompts/`](prompts/), with English translations in [`prompts/en/`](prompts/en/). The only change I made to the models' code is a small "← All tests" link in the top-left corner of each game and diorama.
 
 ## Time and cost
 
