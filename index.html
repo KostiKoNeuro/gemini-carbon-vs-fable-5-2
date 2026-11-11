@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gemini 4 Carbon vs Claude Fable 5.2 · Ботанутый Костя</title>
+<meta name="description" content="Битва нейросетей: Gemini 4 Carbon против Claude Fable 5.2. Гонка, воксельная диорама и заставка канала: играйте прямо в браузере. Счёт 2:1.">
+<meta property="og:title" content="Gemini 4 Carbon vs Claude Fable 5.2: 3 теста, один промпт">
+<meta property="og:description" content="Гонка, диорама и заставка канала. Играйте прямо в браузере. Счёт 2:1.">
+<meta property="og:image" content="https://kostikoneuro.github.io/gemini-carbon-vs-fable-5-2/assets/cover.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/hamster.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Manrope:wght@500;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f7f1e1; --paper2: #efe4c8; --card: #fffbf0; --ink: #101434; --muted: #5b6082;
+    --cyan: #4ed6f0; --yellow: #FFD400; --red: #e5342f; --good: #2fc973;
+    --carbon: #4C8DFF; --carbon-soft: #dfe9ff; --fable: #E8783F; --fable-soft: #ffe6d6;
+    --b: 4px; --r: 22px; --sh: 6px 6px 0 var(--ink);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; color: var(--ink); font: 600 16px/1.55 Manrope, system-ui, "Segoe UI", sans-serif;
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(rgba(16,20,52,.07) 1.5px, transparent 1.5px),
+      linear-gradient(90deg, rgba(16,20,52,.07) 1.5px, transparent 1.5px);
+    background-size: 32px 32px;
+    overflow-x: hidden;
+  }
+  body::before { /* red notebook margin */
+    content: ""; position: fixed; top: 0; bottom: 0; left: 46px; width: 2px; background: rgba(229,52,47,.35); pointer-events: none; z-index: 0;
+  }
+  a { color: inherit; }
+  main { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 18px 16px 56px; }
+  h1, h2, h3 { font-family: Unbounded, Manrope, sans-serif; margin: 0; letter-spacing: -0.01em; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+  /* ---------- top bar ---------- */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .brand img { width: 52px; height: 48px; }
+  .brand b { font-family: Unbounded; font-weight: 900; font-size: 19px; line-height: 1.05; text-shadow: 2px 2px 0 var(--cyan); }
+  .brand small { display: block; font-size: 12px; color: var(--muted); font-weight: 700; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 3px solid var(--ink); border-radius: 999px;
+    background: var(--card); box-shadow: 3px 3px 0 var(--ink); font-weight: 800; font-size: 14px; text-decoration: none; white-space: nowrap;
+    transition: transform .12s, box-shadow .12s;
+  }
+  a.chip:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--ink); }
+  .chip.soon { background: var(--yellow); }
+
+  /* ---------- hero ---------- */
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 28px; align-items: center; margin-bottom: 34px; }
+  .kicker { display: inline-block; background: var(--ink); color: var(--yellow); font: 800 13px/1 "JetBrains Mono", monospace; letter-spacing: .06em; padding: 7px 10px; border-radius: 8px; transform: rotate(-2deg); margin-bottom: 14px; }
+  .hero h1 { font-weight: 900; font-size: clamp(34px, 6vw, 62px); line-height: 1.02; text-shadow: 4px 4px 0 var(--cyan); }
+  .hero h1 .vs { display: inline-block; font-size: .55em; background: var(--yellow); border: var(--b) solid var(--ink); border-radius: 14px; padding: 0 .28em; box-shadow: 4px 4px 0 var(--ink); text-shadow: none; transform: rotate(-6deg) translateY(-.12em); margin: 0 .08em; }
+  .hero h1 .c { color: var(--carbon); } .hero h1 .f { color: var(--fable); }
+  .lead { font-size: 18px; margin: 16px 0 6px; max-width: 34em; }
+  .en { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+  .rules { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .rule { display: inline-flex; align-items: center; gap: 7px; font-weight: 800; font-size: 14px; }
+  .tick { width: 24px; height: 24px; border: 3px solid var(--ink); border-radius: 7px; background: var(--card); box-shadow: 2px 2px 0 var(--ink); display: grid; place-items: center; color: var(--good); font-size: 15px; line-height: 1; }
+  .cover { position: relative; transform: rotate(2deg); }
+  .cover img { display: block; width: 100%; height: auto; border: var(--b) solid var(--ink); border-radius: var(--r); box-shadow: 8px 8px 0 var(--ink); background: #0b1020; }
+  .cover .tape { position: absolute; width: 96px; height: 28px; background: rgba(255,212,0,.82); border: 2px solid rgba(16,20,52,.25); top: -12px; left: 50%; transform: translateX(-50%) rotate(-4deg); }
+
+  /* ---------- scoreboard ---------- */
+  .board { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; gap: 18px; align-items: stretch; margin: 6px 0 40px; }
+  .fighter { position: relative; background: var(--card); border: var(--b) solid var(--ink); border-radius: var(--r); box-shadow: var(--sh); padding: 18px 18px 16px; display: flex; gap: 14px; align-items: center; }
+  .fighter.carbon { background: linear-gradient(160deg, var(--card) 55%, var(--carbon-soft)); }
+  .fighter.fable { background: linear-gradient(200deg, var(--card) 55%, var(--fable-soft)); flex-direction: row-reverse; text-align: right; }
+  .logo { flex: 0 0 auto; width: 74px; height: 74px; border: var(--b) solid var(--ink); border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 3px 3px 0 var(--ink); }
+  .logo img { width: 70%; height: 70%; object-fit: contain; }
+  .fighter h3 { font-weight: 900; font-size: 22px; line-height: 1.1; }
+  .fighter .maker { font-size: 13px; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+  .fighter .how { font-size: 13px; margin-top: 4px; }
+  .carbon h3 { color: var(--carbon); } .fable h3 { color: var(--fable); }
+  .score { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-width: 190px; }
+  .vsbadge { font-family: Unbounded; font-weight: 900; font-size: 22px; background: var(--red); color: #fff; border: var(--b) solid var(--ink); border-radius: 50%; width: 64px; height: 64px; display: grid; place-items: center; box-shadow: 4px 4px 0 var(--ink); transform: rotate(-10deg); }
+  .digits { font-family: Unbounded; font-weight: 900; font-size: 64px; line-height: 1; white-space: nowrap; }
+  .digits .c { color: var(--carbon); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 4px 4px 0 var(--ink); }
+  .digits .f { color: var(--fable); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 4px 4px 0 var(--ink); }
+  .digits .col { margin: 0 .12em; }
+  .verdict { font-weight: 800; font-size: 13px; text-align: center; }
+  .stamp { display: inline-block; font-family: Unbounded; font-weight: 900; color: var(--red); border: 4px solid var(--red); border-radius: 10px; padding: 3px 10px; transform: rotate(-7deg); font-size: 15px; letter-spacing: .02em; background: rgba(255,255,255,.55); box-shadow: inset 0 0 0 2px rgba(255,255,255,.6); }
+  .hamster-peek { position: absolute; width: 104px; right: -8px; top: -78px; transform: rotate(8deg); pointer-events: none; filter: drop-shadow(3px 3px 0 rgba(16,20,52,.18)); }
+
+  /* ---------- section headings ---------- */
+  .sec-h { display: flex; align-items: baseline; gap: 12px; margin: 0 0 16px; flex-wrap: wrap; }
+  .sec-h h2 { font-weight: 900; font-size: clamp(24px, 3.6vw, 34px); text-shadow: 3px 3px 0 var(--cyan); }
+  .sec-h span { color: var(--muted); font-size: 14px; }
+
+  /* ---------- tests ---------- */
+  .test { position: relative; background: var(--card); border: var(--b) solid var(--ink); border-radius: var(--r); box-shadow: var(--sh); padding: 20px; margin-bottom: 28px; }
+  .test-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 12px; }
+  .num { flex: 0 0 auto; font-family: Unbounded; font-weight: 900; font-size: 26px; width: 52px; height: 52px; display: grid; place-items: center; background: var(--yellow); border: var(--b) solid var(--ink); border-radius: 14px; box-shadow: 3px 3px 0 var(--ink); transform: rotate(-5deg); }
+  .test h3 { font-weight: 900; font-size: clamp(19px, 2.6vw, 25px); line-height: 1.15; }
+  .test .desc { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+  .winner-tag { display: inline-block; margin-top: 8px; font-weight: 800; font-size: 13px; padding: 3px 10px; border: 3px solid var(--ink); border-radius: 999px; background: var(--good); color: var(--ink); }
+  .duel { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; }
+  .side { position: relative; border: 3px solid var(--ink); border-radius: 18px; padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .side.carbon { background: var(--carbon-soft); }
+  .side.fable { background: var(--fable-soft); }
+  .side-top { display: flex; align-items: center; gap: 10px; }
+  .side-top img { width: 34px; height: 34px; background: #fff; border: 3px solid var(--ink); border-radius: 50%; padding: 4px; }
+  .side-top b { font-family: Unbounded; font-weight: 800; font-size: 17px; }
+  .side.carbon .side-top b { color: #2a62d6; } .side.fable .side-top b { color: #c4561f; }
+  .side.win { box-shadow: 0 0 0 4px var(--yellow), 5px 5px 0 4px var(--ink); }
+  .crown { position: absolute; top: -18px; right: 12px; font-family: Unbounded; font-weight: 900; font-size: 13px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 10px; padding: 3px 9px; transform: rotate(4deg); box-shadow: 2px 2px 0 var(--ink); white-space: nowrap; }
+  .stats { display: flex; gap: 6px; flex-wrap: wrap; }
+  .stat { font: 700 13px/1 "JetBrains Mono", monospace; background: var(--card); border: 2px solid var(--ink); border-radius: 8px; padding: 5px 8px; }
+  .keys { font-size: 13.5px; line-height: 1.5; color: #2a2f52; }
+  kbd { font: 700 12px/1 Consolas, "Segoe UI Symbol", ui-monospace, Menlo, monospace; background: #fff; border: 2px solid var(--ink); border-bottom-width: 3px; border-radius: 6px; padding: 2px 5px; display: inline-block; margin: 1px 0; }
+  .btn {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; font-family: Unbounded; font-weight: 800; font-size: 16px; text-decoration: none;
+    background: var(--yellow); color: var(--ink); border: var(--b) solid var(--ink); border-radius: 14px; padding: 10px 18px; box-shadow: 4px 4px 0 var(--ink);
+    transition: transform .12s, box-shadow .12s; margin-top: auto;
+  }
+  .btn:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); }
+  .btn:active { transform: translate(3px,3px); box-shadow: 1px 1px 0 var(--ink); }
+  .btn .tab { font: 700 11px/1 Manrope, sans-serif; opacity: .7; }
+  video { display: block; width: 100%; aspect-ratio: 16/9; border: 3px solid var(--ink); border-radius: 12px; background: #000; }
+  details.prompt { margin-top: 14px; border: 3px dashed rgba(16,20,52,.45); border-radius: 14px; background: rgba(255,255,255,.5); }
+  details.prompt summary { cursor: pointer; padding: 10px 14px; font-weight: 800; list-style: none; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  details.prompt summary::-webkit-details-marker { display: none; }
+  details.prompt summary::before { content: "▸"; font-size: 14px; transition: transform .15s; }
+  details.prompt[open] summary::before { transform: rotate(90deg); }
+  details.prompt summary a { font-weight: 700; font-size: 13px; color: var(--muted); margin-left: auto; }
+  details.prompt .ptext { padding: 0 16px 14px; white-space: pre-wrap; font-size: 14.5px; line-height: 1.5; margin: 0; font-family: Manrope, sans-serif; font-weight: 600; }
+  .note { font-size: 13.5px; color: var(--muted); margin: 10px 0 0; }
+
+  /* ---------- money ---------- */
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+  .tile { background: var(--card); border: var(--b) solid var(--ink); border-radius: 18px; box-shadow: 4px 4px 0 var(--ink); padding: 14px; }
+  .tile .lbl { font-size: 12.5px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .tile .val { font-family: Unbounded; font-weight: 900; font-size: 30px; line-height: 1.1; margin: 4px 0 2px; }
+  .tile .sub { font-size: 13px; }
+  .tile.c .val { color: var(--carbon); } .tile.f .val { color: var(--fable); }
+  .tile.y { background: var(--yellow); transform: rotate(-1.5deg); }
+  .tile.y .lbl { color: var(--ink); }
+  .table-wrap { background: var(--card); border: var(--b) solid var(--ink); border-radius: 18px; box-shadow: var(--sh); overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 560px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 2px solid rgba(16,20,52,.12); vertical-align: top; }
+  thead th { background: var(--ink); color: #fff; font-family: Unbounded; font-weight: 800; font-size: 14px; }
+  thead th.c { color: #9cc0ff; } thead th.f { color: #ffb48d; }
+  tbody tr:last-child td { border-bottom: none; background: rgba(255,212,0,.35); font-weight: 800; }
+  td small { color: var(--muted); display: block; font-size: 12px; }
+  .fine { font-size: 13.5px; color: var(--muted); margin: 12px 4px 0; }
+
+  /* ---------- how ---------- */
+  .how-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .how-card { background: var(--card); border: var(--b) solid var(--ink); border-radius: 18px; box-shadow: 4px 4px 0 var(--ink); padding: 16px 18px; }
+  .how-card h3 { font-weight: 800; font-size: 17px; margin-bottom: 6px; }
+  .how-card ul { margin: 0; padding-left: 20px; }
+  .how-card li { margin: 4px 0; font-size: 14.5px; }
+  .how-card.wide { grid-column: 1 / -1; }
+
+  footer { margin-top: 40px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; text-align: center; font-size: 14px; }
+  footer img { width: 64px; }
+  footer p { margin: 0; }
+
+  @media (max-width: 820px) {
+    .hero { grid-template-columns: 1fr; gap: 26px; }
+    .cover { max-width: 560px; }
+    .tiles { grid-template-columns: 1fr 1fr; }
+    .how-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    body::before { left: 10px; }
+    .board { grid-template-columns: 1fr; gap: 14px; }
+    .fighter.fable { flex-direction: row; text-align: left; }
+    .score { flex-direction: row; min-width: 0; gap: 14px; }
+    .vsbadge { width: 54px; height: 54px; font-size: 18px; }
+    .digits { font-size: 52px; }
+    .hamster-peek { width: 80px; top: -60px; right: -4px; }
+    .duel { grid-template-columns: 1fr; gap: 22px; }
+    .test { padding: 16px 14px; }
+    .tile .val { font-size: 24px; }
+    .lead { font-size: 16.5px; }
+    table { min-width: 0; font-size: 13px; }
+    th, td { padding: 8px 7px; }
+    thead th { font-size: 12px; }
+    td small { font-size: 11px; }
+    .chip { padding: 5px 10px; font-size: 13px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+
+  <header class="top">
+    <a class="brand" href="https://www.youtube.com/@kosti_neuro" target="_blank" rel="noopener">
+      <img src="assets/hamster.svg" alt="Хомяк-ботаник">
+      <span><b>Ботанутый Костя</b><small>тесты нейросетей · AI model battles</small></span>
+    </a>
+    <nav class="chips">
+      <span class="chip soon" title="Ссылка на ролик появится здесь">🎬 Видео: скоро</span>
+      <a class="chip" href="https://t.me/kostik_neuro" target="_blank" rel="noopener">✈️ Telegram</a>
+      <a class="chip" href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2" target="_blank" rel="noopener">⌨️ GitHub</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div>
+      <div class="kicker">БИТВА НЕЙРОСЕТЕЙ · 3 ТЕСТА</div>
+      <h1><span class="c">Gemini 4 Carbon</span> <span class="vs">vs</span> <span class="f">Claude Fable&nbsp;5.2</span></h1>
+      <p class="lead">Одинаковые короткие промпты, без подсказок и правок. Каждая модель сама пишет, запускает и проверяет свою работу. Всё, что они сделали, открывается прямо здесь, в браузере.</p>
+      <p class="en">Same short prompts, no hints, no fixes. Play every result right in your browser.</p>
+      <div class="rules">
+        <span class="rule"><span class="tick">✓</span>1 промпт</span>
+        <span class="rule"><span class="tick">✓</span>0 правок</span>
+        <span class="rule"><span class="tick">✓</span>свой харнес у каждой</span>
+      </div>
+    </div>
+    <div class="cover"><span class="tape"></span><img src="assets/cover.jpg" width="1280" height="720" alt="Обложка ролика: Gemini 4 Carbon против Claude Fable 5.2"></div>
+  </section>
+
+  <section class="board" aria-label="Счёт">
+    <img class="hamster-peek" src="assets/hamster.svg" alt="">
+    <div class="fighter carbon">
+      <div class="logo"><img src="assets/gemini.png" alt="Gemini"></div>
+      <div>
+        <div class="maker">Google</div>
+        <h3>Gemini 4 Carbon</h3>
+        <div class="how">Antigravity · thinking High</div>
+      </div>
+    </div>
+    <div class="score">
+      <div class="vsbadge">VS</div>
+      <div>
+        <div class="digits"><span class="c">2</span><span class="col">:</span><span class="f">1</span></div>
+        <div class="verdict"><span class="stamp">ПОБЕДА CARBON</span></div>
+      </div>
+    </div>
+    <div class="fighter fable">
+      <div class="logo"><img src="assets/claude.png" alt="Claude"></div>
+      <div>
+        <div class="maker">Anthropic</div>
+        <h3>Claude Fable 5.2</h3>
+        <div class="how">Claude Code · effort High</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-h"><h2>Тесты</h2><span>кнопки открывают тест в новой вкладке · в каждом тесте есть «← Ко всем тестам»</span></div>
+
+  <!-- 1 -->
+  <article class="test" id="race">
+    <div class="test-head">
+      <div class="num">1</div>
+      <div>
+        <h3>Спидран: аркадная гонка «Neon Night Racer»</h3>
+        <p class="desc">Ночное шоссе, synthwave-город, 80-е, «до аварии одна ошибка». Музыка и звук кодом, один index.html.</p>
+        <span class="winner-tag">🏆 Раунд за Carbon</span>
+      </div>
+    </div>
+    <div class="duel">
+      <div class="side carbon win">
+        <span class="crown">🏆 Победа</span>
+        <div class="side-top"><img src="assets/gemini.png" alt=""><b>Gemini 4 Carbon</b></div>
+        <div class="stats"><span class="stat">⏱ 25:13</span><span class="stat">💸 $1.76</span></div>
+        <div class="keys">Three.js-гонка с выбором из 3 машин, встречкой x2, near-miss, турбо и щитом. <kbd>A</kbd>/<kbd>D</kbd> или <kbd>←</kbd><kbd>→</kbd> руль, <kbd>W</kbd> газ, <kbd>S</kbd> тормоз, <kbd>Space</kbd>/<kbd>Shift</kbd> турбо, <kbd>C</kbd> камера, <kbd>M</kbd> звук, <kbd>R</kbd> заново.</div>
+        <a class="btn" href="1-race/carbon/" target="_blank" rel="noopener">▶ Играть <span class="tab">↗ новая вкладка</span></a>
+      </div>
+      <div class="side fable">
+        <div class="side-top"><img src="assets/claude.png" alt=""><b>Claude Fable 5.2</b></div>
+        <div class="stats"><span class="stat">⏱ 43:08</span><span class="stat">💸 $13.71</span></div>
+        <div class="keys">Пять секторов, цепь near-miss до x10, овердрайв, который сносит трафик, рекорды с инициалами. <kbd>←</kbd><kbd>→</kbd> или <kbd>A</kbd>/<kbd>D</kbd> руль, <kbd>↓</kbd> тормоз, <kbd>Space</kbd> овердрайв, <kbd>Enter</kbd> старт, <kbd>P</kbd> пауза, <kbd>M</kbd> звук.</div>
+        <a class="btn" href="1-race/fable/" target="_blank" rel="noopener">▶ Играть <span class="tab">↗ новая вкладка</span></a>
+      </div>
+    </div>
+    <details class="prompt">
+      <summary>📝 Промпт <a href="prompts/1-race.md" target="_blank" rel="noopener">prompts/1-race.md</a></summary>
+      <p class="ptext">Сделай браузерную аркадную гонку «Neon Night Racer»: ночное шоссе, неоновый synthwave-город, 80-е.
+
+Главное - ощущение бешеной скорости ночью, когда до аварии одна ошибка.
+
+Представь, что это игра для настоящего аркадного автомата: в неё хочется сыграть ещё раз. Удиви меня.
+
+Музыка и звуки - кодом, без внешних файлов. Итог - один index.html, библиотеки с CDN можно.
+
+Не задавай вопросов: собери, сыграй сам, почини, что сломано.</p>
+    </details>
+  </article>
+
+  <!-- 2 -->
+  <article class="test" id="diorama">
+    <div class="test-head">
+      <div class="num">2</div>
+      <div>
+        <h3>Диорама вслепую: ночной рынок Шэньчжэня из кубиков</h3>
+        <p class="desc">Воксельная 3D-сцена после дождя: пар над воками, неон, провода, скутеры, маленькие люди. При открытии сразу 30-секундный облёт, <kbd>C</kbd> = свободная камера. В ролике варианты шли вслепую: «Вариант 1» = Carbon, «Вариант 2» = Fable.</p>
+        <span class="winner-tag">🏆 Раунд за Carbon</span>
+      </div>
+    </div>
+    <div class="duel">
+      <div class="side carbon win">
+        <span class="crown">🏆 Победа</span>
+        <div class="side-top"><img src="assets/gemini.png" alt=""><b>Gemini 4 Carbon</b></div>
+        <div class="stats"><span class="stat">Вариант 1</span><span class="stat">⏱ 57:29</span><span class="stat">💸 $2.81</span></div>
+        <div class="keys">Диорама на постаменте с разрезом улицы, зеркальные лужи, иероглифы из светящихся вокселей, 20+ человечков и рыжий кот. <kbd>C</kbd> свободная камера: мышь + <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, <kbd>Q</kbd>/<kbd>E</kbd>.</div>
+        <a class="btn" href="2-diorama/carbon/" target="_blank" rel="noopener">▶ Смотреть <span class="tab">↗ новая вкладка</span></a>
+      </div>
+      <div class="side fable">
+        <div class="side-top"><img src="assets/claude.png" alt=""><b>Claude Fable 5.2</b></div>
+        <div class="stats"><span class="stat">Вариант 2</span><span class="stat">⏱ 43:22</span><span class="stat">💸 $12.44</span></div>
+        <div class="keys">Пять домов «городской деревни», воки с огнём, магазин 24H, курьеры на скутерах, капли и круги в лужах. <kbd>C</kbd> свободная камера (мышь), <kbd>Space</kbd> пауза мира.</div>
+        <a class="btn" href="2-diorama/fable/" target="_blank" rel="noopener">▶ Смотреть <span class="tab">↗ новая вкладка</span></a>
+      </div>
+    </div>
+    <details class="prompt">
+      <summary>📝 Промпт <a href="prompts/2-diorama.md" target="_blank" rel="noopener">prompts/2-diorama.md</a></summary>
+      <p class="ptext">Сделай в браузере воксельную 3D-диораму ночного рынка в Шэньчжэне.
+
+После дождя: пар над воками, неон и фонарики, провода над головой, скутеры, маленькие люди едят и торгуются, мокрый асфальт отражает свет. Крошечный живой мир, который хочется поставить на паузу и разглядывать.
+
+Представь, что это работа на конкурс диорам и жюри смотрит её ровно 30 секунд. Как только страница открылась - плавный зацикленный облёт камеры на 30 секунд, без интерфейса. Клавиша C - свободная камера и обратно.
+
+Всё из кубиков и кодом, без моделей и текстур. Итог - один index.html, библиотеки с CDN можно.
+
+Не задавай вопросов: собери, посмотри облёт целиком, почини, что выглядит сломанным.</p>
+    </details>
+  </article>
+
+  <!-- 3 -->
+  <article class="test" id="intro">
+    <div class="test-head">
+      <div class="num">3</div>
+      <div>
+        <h3>Заставка канала в OpenMontage</h3>
+        <p class="desc">10 секунд, 1920×1080, со звуком. Модель сама изучает канал по ссылке, придумывает идею и монтирует. Платная генерация только через kie.ai, не больше $1. Победитель открывает каждый ролик канала.</p>
+        <span class="winner-tag">👑 Раунд за Fable: новый «Король заставки»</span>
+      </div>
+    </div>
+    <div class="duel">
+      <div class="side carbon">
+        <div class="side-top"><img src="assets/gemini.png" alt=""><b>Gemini 4 Carbon</b></div>
+        <div class="stats"><span class="stat">⏱ 44:22</span><span class="stat">💸 $2.97</span><span class="stat">kie $0.50</span></div>
+        <video src="3-intro/carbon.mp4" poster="assets/poster-carbon.jpg" controls playsinline preload="none"></video>
+        <div class="keys"><b>«Краш-тест лаборатория».</b> Нода n8n запускает полигон «5 тестов · 1 шанс», хомяк в каске крутит колесо, пресс впечатывает «49/50», очки превращаются в шестерню аватара. kie: 2 картинки, Kling-видео, музыка Suno.</div>
+      </div>
+      <div class="side fable win">
+        <span class="crown">👑 Король заставки</span>
+        <div class="side-top"><img src="assets/claude.png" alt=""><b>Claude Fable 5.2</b></div>
+        <div class="stats"><span class="stat">⏱ 38:23</span><span class="stat">💸 $15.56</span><span class="stat">kie $0.06</span></div>
+        <video src="3-intro/fable.mp4" poster="assets/poster-fable.jpg" controls playsinline preload="none"></video>
+        <div class="keys"><b>«Очки ботана».</b> Всё в расфокусе, рука нащупывает круглые очки и надевает их на зрителя, в линзах проявляется хомяк-ботаник, потом название, пять галочек и штамп «10/10». Вся графика векторная, кодом; на kie только музыка Suno.</div>
+      </div>
+    </div>
+    <details class="prompt">
+      <summary>📝 Промпт <a href="prompts/3-intro.md" target="_blank" rel="noopener">prompts/3-intro.md</a></summary>
+      <p class="ptext">Сделай заставку для YouTube-канала «Ботанутый Костя» - 10 секунд, 1920×1080, со звуком.
+
+Канал: https://www.youtube.com/@kosti_neuro. Сначала сам изучи канал: о чём он, как выглядит, какой характер у автора. Заставка должна быть про этот канал, а не про абстрактный AI-бренд.
+
+Представь, что это работа на конкурс заставок: жюри - лучшие моушн-дизайнеры мира, а победитель будет открывать каждый ролик канала. Нужна идея, а не летающий текст. Удиви меня.
+
+Название «Ботанутый Костя» - ровно так, и оно читается в кадре хотя бы последние 1,5 секунды.
+
+Работай в OpenMontage, проект назови intro-&lt;модель&gt;. Платная генерация - только через kie.ai, не больше $1. Все согласования одобрены заранее: иди до финального mp4 без остановок.
+
+Не задавай вопросов. В конце: путь к mp4, идея в одном абзаце, сколько потратил на kie.ai и что ты узнал о канале.</p>
+    </details>
+    <p class="note">Хомяк-ботаник в шапке этой страницы взят из заставки Fable 5.2: модель нарисовала его кодом.</p>
+  </article>
+
+  <!-- money -->
+  <div class="sec-h" id="cost"><h2>Время и деньги</h2><span>цены по официальному прайсу API</span></div>
+  <div class="tiles">
+    <div class="tile c"><div class="lbl">Carbon · всего</div><div class="val">$7.54</div><div class="sub">2 ч 07 мин · + kie $0.50</div></div>
+    <div class="tile f"><div class="lbl">Fable 5.2 · всего</div><div class="val">$41.71</div><div class="sub">2 ч 05 мин · + kie $0.06</div></div>
+    <div class="tile y"><div class="lbl">Разница в цене</div><div class="val">×5.5</div><div class="sub">Carbon дешевле (×3.4 даже с его помощниками)</div></div>
+    <div class="tile"><div class="lbl">Правок использовано</div><div class="val">0 : 0</div><div class="sub">обе сделали всё с одного промпта</div></div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Тест</th><th class="c">Gemini 4 Carbon</th><th class="f">Claude Fable 5.2</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Гонка</td><td>25:13 · $1.76<small>+ до $0.54 браузерный помощник</small></td><td>43:08 · $13.71</td></tr>
+        <tr><td>2 · Диорама</td><td>57:29 · $2.81<small>+ до $3.49 браузерный помощник</small></td><td>43:22 · $12.44</td></tr>
+        <tr><td>3 · Заставка</td><td>44:22 · $2.97 + kie $0.50<small>+ до $0.79 помощник</small></td><td>38:23 · $15.56 + kie $0.06</td></tr>
+        <tr><td>Итого</td><td>~2 ч 07 мин · $7.54<small>до $12.36 с помощниками, + kie $0.50</small></td><td>~2 ч 05 мин · $41.71<small>+ kie $0.06</small></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="fine">Carbon: $2 вход / $0.10 кэш / $10 выход за 1M токенов (вводная цена до 30.11, с 01.12 вдвое выше). Fable 5.2: $8 / $0.20 / $40. Antigravity сам запускает браузерного помощника на Gemini 3.8 Flash (играет в игру, смотрит облёт, открывает канал); его стоимость посчитана по ценам Carbon, поэтому это верхняя граница.</p>
+
+  <!-- how -->
+  <div class="sec-h" id="how" style="margin-top:36px"><h2>Как запускали</h2><span>how it was run</span></div>
+  <div class="how-grid">
+    <div class="how-card">
+      <h3 style="color:#2a62d6">Gemini 4 Carbon</h3>
+      <ul>
+        <li>Приложение Google <b>Antigravity</b>, thinking <b>High</b> (максимум в Antigravity).</li>
+        <li>Каждый тест в новой беседе, промпт вставлял я сам, вручную.</li>
+        <li>Antigravity сам подключает браузерного помощника на Gemini 3.8 Flash для самопроверки.</li>
+        <li>Первая попытка спидрана трижды оборвалась на сетевом таймауте (<span class="mono">The stream was interrupted</span>) и стоила $0.68; в таблицу не входит.</li>
+      </ul>
+    </div>
+    <div class="how-card">
+      <h3 style="color:#c4561f">Claude Fable 5.2</h3>
+      <ul>
+        <li><b>Claude Code</b> 2.1.321, усилие <b>High</b>.</li>
+        <li>Headless-браузер Playwright, чтобы модель сама играла и смотрела свою работу.</li>
+        <li>Каждый тест в новой сессии, в чистой папке.</li>
+      </ul>
+    </div>
+    <div class="how-card wide">
+      <h3>Общие правила</h3>
+      <ul>
+        <li>Один и тот же короткий русский промпт, максимум одна правка словами. Правка не понадобилась никому, на согласовании никто не вставал.</li>
+        <li>Модели не видели критериев оценки. Диорама в ролике показывалась вслепую.</li>
+        <li>Заставка делалась в <a href="https://github.com/calesthio/OpenMontage" target="_blank" rel="noopener">OpenMontage</a>; платная генерация только через kie.ai, лимит $1.</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    <img src="assets/hamster.svg" alt="">
+    <p>Сделано для YouTube-канала <a href="https://www.youtube.com/@kosti_neuro" target="_blank" rel="noopener"><b>Ботанутый Костя</b></a> · <a href="https://t.me/kostik_neuro" target="_blank" rel="noopener">Telegram</a> · <a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2" target="_blank" rel="noopener">GitHub</a><br>Оценки и мнения мои. Код игр и диорам написан моделями, я добавил только кнопку «← Ко всем тестам».</p>
+  </footer>
+</main>
+</body>
+</html>

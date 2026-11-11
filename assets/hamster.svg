@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -350 400 362">
+<!-- The nerd hamster from Fable 5.2's channel intro ("Очки ботана"), vector, drawn in code by the model -->
+<g stroke-linejoin="round" stroke-linecap="round">
+<ellipse cx="-68" cy="-8" rx="46" ry="20" fill="#ffa3b5" stroke="#101434" stroke-width="7"/><ellipse cx="68" cy="-8" rx="46" ry="20" fill="#ffa3b5" stroke="#101434" stroke-width="7"/>
+<circle cx="-106" cy="-298" r="45" fill="#e8923a" stroke="#101434" stroke-width="7"/><circle cx="-106" cy="-295" r="23" fill="#ffa3b5"/>
+<circle cx="106" cy="-298" r="45" fill="#e8923a" stroke="#101434" stroke-width="7"/><circle cx="106" cy="-295" r="23" fill="#ffa3b5"/>
+<path d="M -154,-112 C -154,-254 -100,-334 0,-334 C 100,-334 154,-254 154,-112 C 154,-32 114,-4 0,-4 C -114,-4 -154,-32 -154,-112 Z" fill="#f6ae55" stroke="#101434" stroke-width="7"/>
+<path d="M -34,-330 C -22,-304 -8,-296 0,-296 C 8,-296 22,-304 34,-330 C 12,-336 -12,-336 -34,-330 Z" fill="#e8923a"/>
+<ellipse cx="0" cy="-76" rx="98" ry="66" fill="#fff3dc"/>
+<ellipse cx="-60" cy="-170" rx="70" ry="50" fill="#fff3dc"/><ellipse cx="60" cy="-170" rx="70" ry="50" fill="#fff3dc"/><ellipse cx="0" cy="-186" rx="52" ry="40" fill="#fff3dc"/><ellipse cx="0" cy="-138" rx="64" ry="34" fill="#fff3dc"/>
+<ellipse cx="-112" cy="-172" rx="19" ry="11" fill="#ff9fb0" opacity="0.6"/><ellipse cx="112" cy="-172" rx="19" ry="11" fill="#ff9fb0" opacity="0.6"/>
+<g stroke="#101434" stroke-width="4" fill="none"><path d="M -96,-180 L -182,-200"/><path d="M -100,-167 L -188,-167"/><path d="M -96,-154 L -180,-136"/></g>
+<g stroke="#101434" stroke-width="4" fill="none"><path d="M 96,-180 L 182,-200"/><path d="M 100,-167 L 188,-167"/><path d="M 96,-154 L 180,-136"/></g>
+<ellipse cx="-66" cy="-94" rx="27" ry="19" fill="#ffd9c0" stroke="#101434" stroke-width="6"/>
+<rect x="-10" y="-176" width="20" height="19" rx="4" fill="#ffffff" stroke="#101434" stroke-width="4"/><path d="M 0,-176 L 0,-158" stroke="#101434" stroke-width="3" fill="none"/>
+<path d="M -20,-178 Q -10,-164 0,-178 Q 10,-164 20,-178" fill="none" stroke="#101434" stroke-width="5"/>
+<path d="M -16,-204 Q 0,-212 16,-204 Q 13,-186 0,-182 Q -13,-186 -16,-204 Z" fill="#ff7e98" stroke="#101434" stroke-width="5"/>
+<circle cx="-60" cy="-238" r="47" fill="rgba(238,250,255,0.9)"/><circle cx="60" cy="-238" r="47" fill="rgba(238,250,255,0.9)"/>
+<ellipse cx="-60" cy="-238" rx="19" ry="22" fill="#101434"/><circle cx="-53" cy="-246" r="7" fill="#ffffff"/><circle cx="-66" cy="-229" r="3.4" fill="#ffffff" opacity="0.85"/>
+<ellipse cx="60" cy="-238" rx="19" ry="22" fill="#101434"/><circle cx="67" cy="-246" r="7" fill="#ffffff"/><circle cx="54" cy="-229" r="3.4" fill="#ffffff" opacity="0.85"/>
+<path d="M -108,-248 L -150,-266 M 108,-248 L 150,-266" fill="none" stroke="#101434" stroke-width="8"/>
+<circle cx="-60" cy="-238" r="47" fill="rgba(120,220,245,0.10)" stroke="#101434" stroke-width="9"/><circle cx="60" cy="-238" r="47" fill="rgba(120,220,245,0.10)" stroke="#101434" stroke-width="9"/>
+<path d="M -14,-244 Q 0,-256 14,-244" fill="none" stroke="#101434" stroke-width="8"/>
+<path d="M -90,-252 A 36 36 0 0 1 -70,-272" fill="none" stroke="#ffffff" stroke-width="6" opacity="0.95"/><path d="M 30,-252 A 36 36 0 0 1 50,-272" fill="none" stroke="#ffffff" stroke-width="6" opacity="0.95"/>
+<ellipse cx="66" cy="-94" rx="27" ry="19" fill="#ffd9c0" stroke="#101434" stroke-width="6"/>
+</g>
+</svg>

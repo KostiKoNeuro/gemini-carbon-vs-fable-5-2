@@ -1,0 +1,2162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shenzhen Night Market — Voxel Diorama</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #05070d;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    outline: none;
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<style>#kk-back{position:fixed;top:6px;left:6px;z-index:2147483647;display:inline-flex;align-items:center;height:26px;padding:0 8px;font:700 12px/1 system-ui,-apple-system,"Segoe UI",sans-serif;color:#101434;background:#FFD400;border:2px solid #101434;border-radius:999px;box-shadow:2px 2px 0 #101434;text-decoration:none;white-space:nowrap;opacity:.85;pointer-events:auto;user-select:none;-webkit-user-select:none}#kk-back span{display:inline-block;overflow:hidden;max-width:140px;margin-left:5px;animation:kkb .4s ease 4s forwards}#kk-back:hover,#kk-back:focus-visible{opacity:1}#kk-back:hover span,#kk-back:focus-visible span{animation:none;max-width:140px;margin-left:5px}@keyframes kkb{to{max-width:0;margin-left:0}}</style><a id="kk-back" href="../../" title="Ко всем тестам" aria-label="Ко всем тестам">&larr;<span>Ко всем тестам</span></a>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+
+// ============================================================================
+// 1. RENDERER, SCENE, ATMOSPHERE & REAL-TIME PLANAR REFLECTION SETUP
+// ============================================================================
+const renderer = new THREE.WebGLRenderer({
+  antialias: true,
+  powerPreference: 'high-performance'
+});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.08;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x060913);
+scene.fog = new THREE.FogExp2(0x080d1a, 0.0145);
+
+const camera = new THREE.PerspectiveCamera(
+  44,
+  window.innerWidth / window.innerHeight,
+  0.2,
+  160
+);
+
+// Post-processing pipeline: crisp voxels + subtle atmospheric neon bloom
+const composer = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  0.42, // strength: rich halo on HDR emissives without washing out voxels
+  0.55, // radius
+  0.88  // threshold: only emissive HDR light sources (>0.88) bloom
+);
+composer.addPass(bloomPass);
+composer.addPass(new OutputPass());
+
+// Ambient night sky & post-rain moonlight / urban bounce
+const hemiLight = new THREE.HemisphereLight(0x4669ad, 0x2c202a, 1.28);
+scene.add(hemiLight);
+
+const moonLight = new THREE.DirectionalLight(0x7d9ee0, 0.78);
+moonLight.position.set(-18, 28, 16);
+moonLight.castShadow = true;
+moonLight.shadow.mapSize.set(2048, 2048);
+moonLight.shadow.camera.left = -22;
+moonLight.shadow.camera.right = 22;
+moonLight.shadow.camera.top = 22;
+moonLight.shadow.camera.bottom = -22;
+moonLight.shadow.camera.near = 4;
+moonLight.shadow.camera.far = 64;
+moonLight.shadow.bias = -0.0006;
+scene.add(moonLight);
+
+// Soft urban skyglow fill from South-East so cutaway plinth & outer facades never crush to black
+const fillLight = new THREE.DirectionalLight(0x5c7cb8, 0.58);
+fillLight.position.set(22, 18, 24);
+scene.add(fillLight);
+
+// Planar reflection render target for wet post-rain asphalt & puddles
+const REFL_PLANE_Y = 0.02;
+const reflRT = new THREE.WebGLRenderTarget(
+  Math.max(512, Math.floor(window.innerWidth * 0.65)),
+  Math.max(512, Math.floor(window.innerHeight * 0.65)),
+  {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    type: THREE.HalfFloatType
+  }
+);
+const reflCamera = new THREE.PerspectiveCamera(44, camera.aspect, 0.2, 140);
+const reflBiasMatrix = new THREE.Matrix4().set(
+  0.5, 0.0, 0.0, 0.5,
+  0.0, 0.5, 0.0, 0.5,
+  0.0, 0.0, 0.5, 0.5,
+  0.0, 0.0, 0.0, 1.0
+);
+const reflMatrix = new THREE.Matrix4();
+
+// Shared uniforms for wet pavement shader (puddles, dampness, raindrop ripples)
+const MAX_RIPPLES = 18;
+const rippleData = Array.from({ length: MAX_RIPPLES }, () => new THREE.Vector4(0, -100, 0, 1));
+const wetUniforms = {
+  uReflMap: { value: reflRT.texture },
+  uReflMatrix: { value: reflMatrix },
+  uReflPlaneY: { value: REFL_PLANE_Y },
+  uTime: { value: 0 },
+  uRipples: { value: rippleData }
+};
+
+// Wet asphalt / puddle / sidewalk material (all pure BoxGeometry voxel instances)
+const wetGroundMaterial = new THREE.MeshStandardMaterial({
+  color: 0xffffff,
+  roughness: 0.35,
+  metalness: 0.12
+});
+
+wetGroundMaterial.onBeforeCompile = (shader) => {
+  shader.uniforms.uReflMap = wetUniforms.uReflMap;
+  shader.uniforms.uReflMatrix = wetUniforms.uReflMatrix;
+  shader.uniforms.uReflPlaneY = wetUniforms.uReflPlaneY;
+  shader.uniforms.uTime = wetUniforms.uTime;
+  shader.uniforms.uRipples = wetUniforms.uRipples;
+
+  shader.vertexShader = `
+    varying vec3 vWorldPos;
+    varying vec3 vWorldNorm;
+  ` + shader.vertexShader.replace(
+    '#include <worldpos_vertex>',
+    `#include <worldpos_vertex>
+     vec4 wp = vec4( transformed, 1.0 );
+     #ifdef USE_INSTANCING
+       wp = instanceMatrix * wp;
+     #endif
+     wp = modelMatrix * wp;
+     vWorldPos = wp.xyz;
+     vec3 wn = objectNormal;
+     #ifdef USE_INSTANCING
+       wn = mat3( instanceMatrix ) * wn;
+     #endif
+     vWorldNorm = normalize( mat3( modelMatrix ) * wn );
+    `
+  );
+
+  shader.fragmentShader = `
+    uniform sampler2D uReflMap;
+    uniform mat4 uReflMatrix;
+    uniform float uReflPlaneY;
+    uniform float uTime;
+    uniform vec4 uRipples[${MAX_RIPPLES}];
+    varying vec3 vWorldPos;
+    varying vec3 vWorldNorm;
+
+    // Quantized procedural puddle & micro-roughness field matching voxel grid
+    float hash21(vec2 p) {
+      p = fract(p * vec2(123.34, 456.21));
+      p += dot(p, p + 45.32);
+      return fract(p.x * p.y);
+    }
+    float puddleField(vec2 xz) {
+      vec2 q = floor(xz * 4.0) / 4.0;
+      float lowFreq = sin(q.x * 0.42 + 0.7) * cos(q.y * 0.68 - 0.3)
+                    + 0.55 * sin(q.x * 0.95 - q.y * 0.8 + 1.4);
+      float streetMask = smoothstep(2.55, 1.85, abs(q.y));
+      float curbPuddle = smoothstep(0.65, 0.05, abs(abs(q.y) - 2.05));
+      float p = clamp((lowFreq * 0.5 + 0.42) * streetMask + curbPuddle * 0.48, 0.0, 1.0);
+      return smoothstep(0.36, 0.72, p);
+    }
+  ` + shader.fragmentShader.replace(
+    '#include <roughnessmap_fragment>',
+    `#include <roughnessmap_fragment>
+     float pMask = puddleField(vWorldPos.xz);
+     float sidewalkDamp = step(2.42, abs(vWorldPos.z)) * 0.38;
+     float wetness = mix(0.45 - sidewalkDamp * 0.35, 0.94, pMask);
+     if (vWorldNorm.y > 0.8) {
+       roughnessFactor = mix(0.68, 0.06, wetness);
+     }
+    `
+  ).replace(
+    '#include <dithering_fragment>',
+    `#include <dithering_fragment>
+     if (vWorldNorm.y > 0.8 && vWorldPos.y < 0.36) {
+       float pMask2 = puddleField(vWorldPos.xz);
+       float onStreet = smoothstep(5.3, 2.2, abs(vWorldPos.z));
+       float reflStrength = mix(0.16, 0.38, onStreet) + pMask2 * 0.48;
+
+       // Expanding square-ish voxel ripple distortion from falling raindrops
+       vec2 rippleOffset = vec2(0.0);
+       float rippleHighlight = 0.0;
+       for (int i = 0; i < ${MAX_RIPPLES}; i++) {
+         vec4 rp = uRipples[i];
+         float age = uTime - rp.z;
+         if (age > 0.0 && age < 1.8) {
+           vec2 d = vWorldPos.xz - rp.xy;
+           // Subtle Chebyshev/Euclidean blend for crisp voxel-world aesthetic
+           float dist = mix(length(d), max(abs(d.x), abs(d.y)), 0.35);
+           float radius = age * 1.15;
+           float ring = exp(-abs(dist - radius) * 14.0) * (1.0 - age / 1.8);
+           rippleOffset += normalize(d + vec2(0.0001)) * ring * 0.022;
+           rippleHighlight += ring * 0.16 * pMask2;
+         }
+       }
+
+       // Micro asphalt grain distortion when outside mirror puddles
+       vec2 voxCell = floor(vWorldPos.xz * 12.0);
+       vec2 grain = (vec2(hash21(voxCell), hash21(voxCell + 19.7)) - 0.5) * (1.0 - pMask2) * 0.018;
+
+       vec4 projCoord = uReflMatrix * vec4(vWorldPos.x, uReflPlaneY, vWorldPos.z, 1.0);
+       vec2 uv = projCoord.xy / max(projCoord.w, 0.001) + rippleOffset + grain;
+
+       if (uv.x > 0.002 && uv.x < 0.998 && uv.y > 0.002 && uv.y < 0.998) {
+         float blur = mix(0.0048, 0.0007, pMask2);
+         vec3 rCol = texture2D(uReflMap, uv).rgb * 0.36
+                   + texture2D(uReflMap, uv + vec2(blur, 0.0)).rgb * 0.16
+                   + texture2D(uReflMap, uv - vec2(blur, 0.0)).rgb * 0.16
+                   + texture2D(uReflMap, uv + vec2(0.0, blur * 1.6)).rgb * 0.16
+                   + texture2D(uReflMap, uv - vec2(0.0, blur * 1.6)).rgb * 0.16;
+
+         vec3 viewDirW = normalize(cameraPosition - vWorldPos);
+         float fresnel = mix(0.32, 1.0, pow(1.0 - clamp(viewDirW.y, 0.0, 1.0), 2.6));
+         float mixAmt = clamp(reflStrength * fresnel, 0.0, 0.84);
+         // Darken puddle water base slightly before adding vivid neon reflection
+         gl_FragColor.rgb = mix(gl_FragColor.rgb * mix(1.0, 0.55, pMask2), rCol * 1.18, mixAmt);
+         gl_FragColor.rgb += vec3(0.45, 0.62, 0.85) * rippleHighlight;
+       }
+     }
+    `
+  );
+};
+
+// ============================================================================
+// 2. DETERMINISTIC PRNG, VOXEL ENGINE, AO SHADING & CHINESE NEON GLYPHS
+// ============================================================================
+function createRng(seed = 20261111) {
+  let s = seed >>> 0;
+  return function rand() {
+    s += 0x6D2B79F5;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rng = createRng(880755); // 0755 = Shenzhen area code!
+const randRange = (a, b) => a + (b - a) * rng();
+const randInt = (a, b) => Math.floor(randRange(a, b + 0.9999));
+const pick = (arr) => arr[Math.floor(rng() * arr.length)];
+
+const _tmpColor = new THREE.Color();
+const _tmpMat4 = new THREE.Matrix4();
+const _tmpQuat = new THREE.Quaternion();
+const _tmpPos = new THREE.Vector3();
+const _tmpScale = new THREE.Vector3();
+const _tmpEuler = new THREE.Euler();
+
+function shiftColor(hex, deltaL = 0, deltaS = 0) {
+  _tmpColor.set(hex);
+  _tmpColor.offsetHSL(0, deltaS, deltaL);
+  return _tmpColor.getHex();
+}
+
+// Groups so planar reflection pass can cleanly hide y <= 0 geometry
+const upperWorldGroup = new THREE.Group();
+const plinthGroup = new THREE.Group();
+scene.add(upperWorldGroup);
+scene.add(plinthGroup);
+
+// Shared unit cube geometry for all InstancedMesh batches
+const unitBoxGeo = new THREE.BoxGeometry(1, 1, 1);
+
+const roughMat = new THREE.MeshStandardMaterial({
+  color: 0xffffff,
+  roughness: 0.84,
+  metalness: 0.06
+});
+const metalMat = new THREE.MeshStandardMaterial({
+  color: 0xffffff,
+  roughness: 0.34,
+  metalness: 0.76
+});
+const emissiveMat = new THREE.MeshBasicMaterial({
+  color: 0xffffff,
+  toneMapped: true
+});
+const glassMat = new THREE.MeshStandardMaterial({
+  color: 0xffffff,
+  roughness: 0.15,
+  metalness: 0.1,
+  transparent: true,
+  opacity: 0.52,
+  depthWrite: false
+});
+
+// Voxel accumulator with spatial occupancy hash for fast Ambient Occlusion
+const U = 0.25; // Structural voxel unit (0.25m)
+const occSet = new Set();
+const occKey = (ix, iy, iz) => `${ix},${iy},${iz}`;
+
+const batches = {
+  rough: [],
+  metal: [],
+  wet: [],
+  emissive: [],
+  glass: [],
+  plinthRough: [],
+  plinthMetal: []
+};
+
+function addBox(x, y, z, sx, sy, sz, colorHex, type = 'rough', jitter = 0.025, rotY = 0, hdrMult = 1.0, rotX = 0, rotZ = 0) {
+  let c = colorHex;
+  if (jitter > 0 && type !== 'emissive') {
+    c = shiftColor(colorHex, (rng() - 0.5) * jitter * 2, (rng() - 0.5) * jitter);
+  }
+  const rec = { x, y, z, sx, sy, sz, c, rotX, rotY, rotZ, hdrMult, aoChecked: false };
+  if (y + sy * 0.5 <= 0.005 && type !== 'wet' && type !== 'emissive') {
+    batches[type === 'metal' ? 'plinthMetal' : 'plinthRough'].push(rec);
+  } else {
+    batches[type].push(rec);
+  }
+  // Register structural grid occupancy for ambient occlusion
+  if (rotX === 0 && rotY === 0 && rotZ === 0 && type !== 'emissive' && type !== 'glass' && sx >= 0.2 && sy >= 0.2 && sz >= 0.2) {
+    const ix0 = Math.round((x - sx * 0.5) / U);
+    const ix1 = Math.round((x + sx * 0.5) / U);
+    const iy0 = Math.round((y - sy * 0.5) / U);
+    const iy1 = Math.round((y + sy * 0.5) / U);
+    const iz0 = Math.round((z - sz * 0.5) / U);
+    const iz1 = Math.round((z + sz * 0.5) / U);
+    if ((ix1 - ix0) * (iy1 - iy0) * (iz1 - iz0) <= 64) {
+      for (let ix = ix0; ix < ix1; ix++) {
+        for (let iy = iy0; iy < iy1; iy++) {
+          for (let iz = iz0; iz < iz1; iz++) {
+            occSet.add(occKey(ix, iy, iz));
+          }
+        }
+      }
+      rec.aoChecked = true;
+      rec.ix = Math.floor(x / U);
+      rec.iy = Math.floor(y / U);
+      rec.iz = Math.floor(z / U);
+    }
+  }
+}
+
+// Fill an axis-aligned block subdivided into individual U-sized voxel cubes!
+function fillVoxels(x0, y0, z0, x1, y1, z1, colorFnOrHex, type = 'rough', step = U, jitter = 0.03, hollow = false) {
+  const nx = Math.max(1, Math.round((x1 - x0) / step));
+  const ny = Math.max(1, Math.round((y1 - y0) / step));
+  const nz = Math.max(1, Math.round((z1 - z0) / step));
+  const dx = (x1 - x0) / nx;
+  const dy = (y1 - y0) / ny;
+  const dz = (z1 - z0) / nz;
+  // Slight 98.5% bevel gap option or tight cubes: 0.988 gives crisp visible voxel seams up close!
+  const seam = type === 'wet' ? 0.994 : 0.986;
+  for (let ix = 0; ix < nx; ix++) {
+    for (let iy = 0; iy < ny; iy++) {
+      for (let iz = 0; iz < nz; iz++) {
+        if (hollow && ix > 0 && ix < nx - 1 && iy > 0 && iy < ny - 1 && iz > 0 && iz < nz - 1) continue;
+        const cx = x0 + (ix + 0.5) * dx;
+        const cy = y0 + (iy + 0.5) * dy;
+        const cz = z0 + (iz + 0.5) * dz;
+        const col = typeof colorFnOrHex === 'function' ? colorFnOrHex(ix, iy, iz, cx, cy, cz) : colorFnOrHex;
+        if (col === null || col === undefined) continue;
+        addBox(cx, cy, cz, dx * seam, dy * seam, dz * seam, col, type, jitter);
+      }
+    }
+  }
+}
+
+// Merge small list of colored voxel boxes into a single rigid Mesh (for limbs, scooters, lanterns)
+const sharedVertexRoughMat = new THREE.MeshStandardMaterial({
+  vertexColors: true,
+  roughness: 0.72,
+  metalness: 0.14
+});
+const sharedVertexEmissiveMat = new THREE.MeshBasicMaterial({
+  vertexColors: true,
+  toneMapped: true
+});
+
+function buildPartMesh(boxList, isEmissive = false, castShadow = true) {
+  const geos = [];
+  const col = new THREE.Color();
+  for (const b of boxList) {
+    const g = new THREE.BoxGeometry(b.sx, b.sy, b.sz);
+    if (b.rx || b.ry || b.rz) {
+      _tmpEuler.set(b.rx || 0, b.ry || 0, b.rz || 0);
+      g.applyQuaternion(_tmpQuat.setFromEuler(_tmpEuler));
+    }
+    g.translate(b.x, b.y, b.z);
+    col.set(b.c);
+    const mult = b.hdr || 1.0;
+    const count = g.attributes.position.count;
+    const colors = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      // Subtle top/bottom face shading baked into vertex colors
+      const ny = g.attributes.normal.getY(i);
+      const shade = isEmissive ? 1.0 : (ny > 0.5 ? 1.06 : ny < -0.5 ? 0.78 : 0.94);
+      colors[i * 3] = col.r * mult * shade;
+      colors[i * 3 + 1] = col.g * mult * shade;
+      colors[i * 3 + 2] = col.b * mult * shade;
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geos.push(g);
+  }
+  const merged = BufferGeometryUtils.mergeGeometries(geos, false);
+  for (const g of geos) g.dispose();
+  const mesh = new THREE.Mesh(merged, isEmissive ? sharedVertexEmissiveMat : sharedVertexRoughMat);
+  mesh.castShadow = castShadow && !isEmissive;
+  mesh.receiveShadow = !isEmissive;
+  return mesh;
+}
+
+// Crisp 9x9 Pixel/Voxel Chinese Glyphs for authentic Shenzhen Night Market Neon Signs
+const GLYPHS = {
+  '深': [
+    '100111110','010100010','000101010','101001000','010011111',
+    '001001000','010011100','100101010','101001001'
+  ],
+  '圳': [
+    '010010101','010010101','111010101','010010101','010010101',
+    '010010101','011010101','100100101','001000101'
+  ],
+  '夜': [
+    '000010000','111111111','001001000','011011110','101101010',
+    '001010100','001001000','001010100','001100011'
+  ],
+  '市': [
+    '000010000','111111111','000010000','011111110','010010010',
+    '010010010','010010110','000010000','000010000'
+  ],
+  '烧': [
+    '010001000','111011110','010101010','110001100','010111111',
+    '010010100','101010100','100100101','001000011'
+  ],
+  '烤': [
+    '010001010','111011100','010001100','110111111','010001100',
+    '010010111','101000001','100000001','000000110'
+  ],
+  '小': [
+    '000010000','000010000','000010000','010010010','010010010',
+    '100010001','100010001','000110000','000010000'
+  ],
+  '炒': [
+    '010001000','111001010','010101001','110011001','010001000',
+    '010001010','101000100','100001000','000110000'
+  ],
+  '肠': [
+    '111011110','101000100','111001000','101011111','111010101',
+    '101001011','101010101','101001001','101000011'
+  ],
+  '粉': [
+    '101010010','010010001','111101001','010011110','111001010',
+    '101001010','010010010','010100110','010000000'
+  ],
+  '柠': [
+    '010000100','010011111','111010001','010000000','111011111',
+    '010000100','010000100','010000100','010001100'
+  ],
+  '檬': [
+    '010010100','111111111','010010100','110111110','010001000',
+    '010011100','010101010','010011001','010101000'
+  ],
+  '茶': [
+    '001000100','111111111','001010100','000101000','011000110',
+    '100111001','000010000','001010100','010010010'
+  ],
+  '海': [
+    '100010000','010111110','000100000','100011110','010010110',
+    '001111111','010010110','100011110','100000010'
+  ],
+  '鲜': [
+    '010010010','111001100','101011111','111000100','101011110',
+    '111000100','000011111','111100100','000000100'
+  ],
+  '修': [
+    '010100100','010101111','110100101','010101010','010100100',
+    '010101011','010100110','010101100','010110000'
+  ],
+  '冰': [
+    '000010000','100010010','010110100','001011000','000010100',
+    '010110010','101010001','100010000','000110000'
+  ],
+  '室': [
+    '000010000','111111111','100000001','011111110','000101000',
+    '011111110','000010000','011111110','111111111'
+  ],
+  '酒': [
+    '100111111','010001010','000111111','100101011','010110011',
+    '001100001','010111111','100100001','100111111'
+  ]
+};
+
+// Dynamic animated lights & flickering neon elements registry
+const flickerNeons = [];
+const pointLights = [];
+
+function addWarmLight(x, y, z, color, intensity, distance) {
+  const pl = new THREE.PointLight(color, intensity, distance, 1.7);
+  pl.position.set(x, y, z);
+  upperWorldGroup.add(pl);
+  pointLights.push(pl);
+  return pl;
+}
+
+// Build a cantilevered or wall-mounted voxel neon sign with glowing Chinese characters!
+function buildNeonSign({
+  x, y, z, text, vertical = true, facing = 'Z+',
+  bgHex = 0x11131c, borderHex = 0x00f0ff, textHex = 0xff2a85,
+  pxSize = 0.075, hdr = 2.1, brackets = true, doubleSided = false, addLight = true
+}) {
+  const chars = [...text];
+  const charSpan = 11 * pxSize;
+  const wSpan = vertical ? 13 * pxSize : (chars.length * 10 + 3) * pxSize;
+  const hSpan = vertical ? (chars.length * 10 + 3) * pxSize : 13 * pxSize;
+  const thick = 0.14;
+
+  // Determine orientation axes: uAxis = horizontal along sign face, nAxis = outward normal
+  let ux = 0, uz = 0, nx = 0, nz = 0;
+  if (facing === 'Z+') { ux = 1; nz = 1; }
+  else if (facing === 'Z-') { ux = -1; nz = -1; }
+  else if (facing === 'X+') { uz = -1; nx = 1; }
+  else if (facing === 'X-') { uz = 1; nx = -1; }
+
+  const put = (u, v, n, su, sv, sn, col, type, hdrVal = 1.0) => {
+    const wx = x + ux * u + nx * n;
+    const wy = y + v;
+    const wz = z + uz * u + nz * n;
+    const sx = Math.abs(ux) * su + Math.abs(nx) * sn;
+    const sz = Math.abs(uz) * su + Math.abs(nz) * sn;
+    addBox(wx, wy, wz, sx, sv, sz, col, type, 0.01, 0, hdrVal);
+  };
+
+  // Dark backing housing made of small metal cubes
+  const colsU = Math.max(2, Math.round(wSpan / 0.18));
+  const rowsV = Math.max(2, Math.round(hSpan / 0.18));
+  for (let iu = 0; iu < colsU; iu++) {
+    for (let iv = 0; iv < rowsV; iv++) {
+      const cu = -wSpan * 0.5 + (iu + 0.5) * (wSpan / colsU);
+      const cv = -hSpan * 0.5 + (iv + 0.5) * (hSpan / rowsV);
+      put(cu, cv, 0, (wSpan / colsU) * 0.96, (hSpan / rowsV) * 0.96, thick, bgHex, 'metal');
+    }
+  }
+
+  // Iron wall mounting brackets (jutting signs in alley)
+  if (brackets) {
+    const bSide = -wSpan * 0.5 - 0.25;
+    put(bSide, hSpan * 0.34, 0, 0.55, 0.06, 0.06, 0x262932, 'metal');
+    put(bSide, -hSpan * 0.34, 0, 0.55, 0.06, 0.06, 0x262932, 'metal');
+    put(bSide + 0.12, hSpan * 0.34 - 0.14, 0, 0.05, 0.28, 0.05, 0x262932, 'metal');
+  }
+
+  // Glowing neon border tubes (both faces if cantilevered / doubleSided so readable from both directions!)
+  const faces = (brackets || doubleSided) ? [-thick * 0.58, thick * 0.58] : [thick * 0.58];
+  for (const fn of faces) {
+    const signFlip = fn < 0 ? -1 : 1;
+    // Top & bottom border voxel strips
+    const nU = Math.round(wSpan / pxSize);
+    const nV = Math.round(hSpan / pxSize);
+    for (let i = 0; i < nU; i++) {
+      const cu = -wSpan * 0.5 + (i + 0.5) * (wSpan / nU);
+      put(cu, hSpan * 0.5 - pxSize * 0.5, fn, pxSize * 0.92, pxSize * 0.92, pxSize * 0.65, borderHex, 'emissive', hdr * 0.9);
+      put(cu, -hSpan * 0.5 + pxSize * 0.5, fn, pxSize * 0.92, pxSize * 0.92, pxSize * 0.65, borderHex, 'emissive', hdr * 0.9);
+    }
+    for (let j = 1; j < nV - 1; j++) {
+      const cv = -hSpan * 0.5 + (j + 0.5) * (hSpan / nV);
+      put(-wSpan * 0.5 + pxSize * 0.5, cv, fn, pxSize * 0.92, pxSize * 0.92, pxSize * 0.65, borderHex, 'emissive', hdr * 0.9);
+      put(wSpan * 0.5 - pxSize * 0.5, cv, fn, pxSize * 0.92, pxSize * 0.92, pxSize * 0.65, borderHex, 'emissive', hdr * 0.9);
+    }
+
+    // Render each 9x9 Chinese glyph out of glowing emissive cubes!
+    chars.forEach((ch, idx) => {
+      const bmp = GLYPHS[ch];
+      if (!bmp) return;
+      const baseU = vertical ? 0 : (-wSpan * 0.5 + (2.0 + idx * 10 + 4.5) * pxSize) * signFlip;
+      const baseV = vertical ? (hSpan * 0.5 - (2.0 + idx * 10 + 4.5) * pxSize) : 0;
+      for (let r = 0; r < 9; r++) {
+        const rowStr = bmp[r];
+        for (let c = 0; c < 9; c++) {
+          if (rowStr[c] === '1') {
+            const gu = baseU + (c - 4) * pxSize * signFlip;
+            const gv = baseV + (4 - r) * pxSize;
+            put(gu, gv, fn, pxSize * 0.9, pxSize * 0.9, pxSize * 0.72, textHex, 'emissive', hdr);
+          }
+        }
+      }
+    });
+  }
+
+  if (addLight) {
+    const pl = addWarmLight(x + nx * 0.35, y, z + nz * 0.35, textHex, 1.65, 7.5);
+    flickerNeons.push({ light: pl, base: 1.65, phase: rng() * 100, subtle: rng() > 0.25 });
+  }
+  return { charSpan };
+}
+
+// ============================================================================
+// 3. DIORAMA CUTAWAY PLINTH, WET STREET, ARCHWAY & HANDSHAKE BUILDINGS
+// ============================================================================
+const dripSources = []; // { x, y, z } positions that drip post-rain water drops
+
+function connectIronBracketZ(x, y, zFrom, zTo, heightSpan = 0.7) {
+  const zMin = Math.min(zFrom, zTo);
+  const zMax = Math.max(zFrom, zTo);
+  const len = zMax - zMin;
+  if (len < 0.05) return;
+  const zMid = (zMin + zMax) * 0.5;
+  addBox(x, y + heightSpan * 0.32, zMid, 0.06, 0.06, len, 0x232730, 'metal', 0.01);
+  addBox(x, y - heightSpan * 0.32, zMid, 0.06, 0.06, len, 0x232730, 'metal', 0.01);
+  // Diagonal brace in small voxel steps
+  const steps = Math.max(3, Math.round(len / 0.14));
+  for (let i = 0; i < steps; i++) {
+    const t = (i + 0.5) / steps;
+    const bz = zFrom + (zTo - zFrom) * t;
+    const by = (y - heightSpan * 0.32) + t * (heightSpan * 0.64);
+    addBox(x, by, bz, 0.05, 0.07, 0.14, 0x2b303c, 'metal', 0.01);
+  }
+}
+
+function buildPlinthAndStreet() {
+  // 1. Stepped dark walnut / obsidian museum plinth base (Y: -2.05 .. -1.35)
+  fillVoxels(-15.5, -2.05, -10.9, 15.5, -1.75, 10.9, 0x121015, 'rough', 0.5, 0.015, true);
+  fillVoxels(-15.25, -1.75, -10.65, 15.25, -1.40, 10.65, 0x1b171f, 'rough', 0.5, 0.015, true);
+
+  // Brass / warm gold voxel corner accents & front competition plaque bar
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      addBox(sx * 15.22, -1.58, sz * 10.62, 0.45, 0.32, 0.45, 0xb68d40, 'metal', 0.01);
+    }
+  }
+  addBox(0, -1.58, 10.67, 3.2, 0.22, 0.08, 0xc89d4c, 'metal', 0.01);
+  addBox(0, -1.58, 10.71, 2.8, 0.12, 0.04, 0x3b2c16, 'rough', 0.01);
+
+  // 2. Urban geological cutaway perimeter shell (Y: -1.40 .. 0.0)
+  const X0 = -15.0, X1 = 15.0, Z0 = -10.4, Z1 = 10.4;
+  const strataColor = (ix, iy, iz, cx, cy, cz) => {
+    // Storm sewer concrete channel at Z ~ +-2.15
+    if (Math.abs(Math.abs(cz) - 2.15) < 0.42 && cy > -0.85 && cy < -0.22) {
+      if (Math.abs(Math.abs(cz) - 2.15) < 0.22 && cy > -0.68 && cy < -0.35) return 0x16384c; // dark water in pipe
+      return 0x4b505c; // concrete pipe wall
+    }
+    // Orange power conduit at Z ~ -3.6, cy ~ -0.55
+    if (Math.abs(cz + 3.6) < 0.16 && Math.abs(cy + 0.55) < 0.16) return 0xd96b27;
+    if (cy < -0.95) return 0x241d1a; // deep dark earth
+    if (cy < -0.45) return 0x332924; // sub-soil
+    return 0x3d4049; // crushed roadbed aggregate
+  };
+  // Four outer cutaway walls (1 voxel = 0.25m thick for crisp voxel strata!)
+  fillVoxels(X0, -1.40, Z0, X1, 0.0, Z0 + 0.25, strataColor, 'rough', 0.25, 0.03);
+  fillVoxels(X0, -1.40, Z1 - 0.25, X1, 0.0, Z1, strataColor, 'rough', 0.25, 0.03);
+  fillVoxels(X0, -1.40, Z0 + 0.25, X0 + 0.25, 0.0, Z1 - 0.25, strataColor, 'rough', 0.25, 0.03);
+  fillVoxels(X1 - 0.25, -1.40, Z0 + 0.25, X1, 0.0, Z1 - 0.25, strataColor, 'rough', 0.25, 0.03);
+
+  // 3. Wet Post-Rain Asphalt Street (Z: -2.5 .. +2.5, Y: -0.22 .. 0.02)
+  fillVoxels(-15.0, -0.23, -2.5, 15.0, 0.02, 2.5, (ix, iy, iz, cx, cy, cz) => {
+    // Pedestrian crosswalk stripes near West archway (X: -13.4 .. -12.0)
+    if (cx > -13.3 && cx < -12.1 && Math.floor((cz + 2.5) / 0.5) % 2 === 0) {
+      return 0xb8bec8;
+    }
+    // Faded yellow double/dashed side lines
+    if (Math.abs(Math.abs(cz) - 2.05) < 0.13 && Math.floor((cx + 15) / 0.75) % 2 === 0) {
+      return 0x9e7d2c;
+    }
+    // Subtle dark wet asphalt variation
+    const n = Math.sin(cx * 0.6) * Math.cos(cz * 0.9);
+    return n > 0.2 ? 0x191c24 : 0x14171f;
+  }, 'wet', 0.25, 0.02);
+
+  // Storm drain grates along curbs & central manhole cover
+  for (let gx = -11.5; gx <= 12.5; gx += 4.8) {
+    for (const sz of [-2.28, 2.28]) {
+      for (let b = -2; b <= 2; b++) {
+        addBox(gx + b * 0.09, 0.026, sz, 0.05, 0.02, 0.34, 0x2c313a, 'metal', 0.01);
+      }
+    }
+  }
+  // Voxel circular manhole cover at (-2.6, 0.025, -0.15)
+  for (let dx = -2; dx <= 2; dx++) {
+    for (let dz = -2; dz <= 2; dz++) {
+      if (dx * dx + dz * dz <= 5) {
+        addBox(-2.6 + dx * 0.13, 0.026, -0.15 + dz * 0.13, 0.12, 0.022, 0.12, 0x353942, 'metal', 0.02);
+      }
+    }
+  }
+
+  // 4. Raised North & South Sidewalks + Chinese Yellow Tactile Paving (盲道)
+  // North sidewalk (Z: -5.25 .. -2.5) & South sidewalk (Z: +2.5 .. +5.5)
+  const sidewalkColor = (ix, iy, iz, cx, cy, cz) => {
+    const az = Math.abs(cz);
+    if (az < 2.76) return (ix % 2 === 0) ? 0x585e6a : 0x4b505b; // granite curbstone
+    if (Math.abs(az - 3.38) < 0.14) return 0xc29b28; // yellow tactile blind path!
+    return ((ix + iz) % 2 === 0) ? 0x343944 : 0x2e333d;
+  };
+  fillVoxels(-15.0, -0.10, -5.25, 15.0, 0.16, -2.5, sidewalkColor, 'wet', 0.25, 0.02);
+  fillVoxels(-15.0, -0.10, 2.5, 15.0, 0.16, 5.5, sidewalkColor, 'wet', 0.25, 0.02);
+
+  // Under-building foundation pad so zero gaps exist anywhere on the plinth
+  fillVoxels(-15.0, -0.25, -10.4, 15.0, 0.16, -5.25, 0x252830, 'rough', 0.5, 0.02);
+  fillVoxels(-15.0, -0.25, 5.5, 15.0, 0.16, 10.4, 0x252830, 'rough', 0.5, 0.02);
+}
+
+// West Entrance Pai-Lou Neon Archway ("深圳夜市") at X = -14.0
+function buildWestArchway() {
+  const ax = -14.0;
+  for (const sz of [-1, 1]) {
+    const pz = sz * 2.75;
+    // Stone base pedestal
+    fillVoxels(ax - 0.38, 0.16, pz - 0.38, ax + 0.38, 0.95, pz + 0.38, 0x4e525e, 'rough', 0.25, 0.02);
+    // Vermilion red lacquer voxel column + gold collars
+    fillVoxels(ax - 0.24, 0.95, pz - 0.24, ax + 0.24, 6.6, pz + 0.24, 0x9e2124, 'rough', 0.24, 0.02);
+    addBox(ax, 1.05, pz, 0.56, 0.14, 0.56, 0xd4a238, 'metal', 0.01);
+    addBox(ax, 5.25, pz, 0.56, 0.14, 0.56, 0xd4a238, 'metal', 0.01);
+    // Glowing vertical red neon accent strip along column
+    for (let y = 1.5; y <= 4.8; y += 0.22) {
+      addBox(ax - 0.28, y, pz, 0.06, 0.16, 0.08, 0xff3b30, 'emissive', 0, 0, 1.8);
+      addBox(ax + 0.28, y, pz, 0.06, 0.16, 0.08, 0xff3b30, 'emissive', 0, 0, 1.8);
+    }
+  }
+  // Crossbeam & stepped Chinese upturned eaves (Y = 5.35 .. 7.25, portal clear below 5.3m!)
+  fillVoxels(ax - 0.28, 5.35, -3.3, ax + 0.28, 6.45, 3.3, 0x1e222d, 'metal', 0.25, 0.02);
+  // Stepped dark-teal & gold roof tiles over archway
+  for (let step = 0; step < 3; step++) {
+    const w = 3.85 - step * 0.32;
+    const y = 6.50 + step * 0.22;
+    fillVoxels(ax - (0.58 - step * 0.1), y, -w, ax + (0.58 - step * 0.1), y + 0.20, w, 0x1f3b44, 'rough', 0.22, 0.02);
+  }
+  // Upturned gold corner tips
+  for (const sz of [-1, 1]) {
+    addBox(ax, 6.72, sz * 3.92, 0.72, 0.18, 0.24, 0xd8a33a, 'metal', 0.01);
+    addBox(ax, 6.90, sz * 4.08, 0.48, 0.20, 0.20, 0xe6b44c, 'metal', 0.01);
+  }
+  // Iconic horizontal neon sign: 深圳夜市 facing both outside (X-) and inside (X+)!
+  buildNeonSign({
+    x: ax - 0.26, y: 5.90, z: 0, text: '深圳夜市', vertical: false, facing: 'X-',
+    bgHex: 0x121520, borderHex: 0x00f0ff, textHex: 0xff2d88, pxSize: 0.085, hdr: 2.3, brackets: false, addLight: true
+  });
+  buildNeonSign({
+    x: ax + 0.26, y: 5.90, z: 0, text: '深圳夜市', vertical: false, facing: 'X+',
+    bgHex: 0x121520, borderHex: 0xffb800, textHex: 0x00f5d4, pxSize: 0.085, hdr: 2.2, brackets: false, addLight: true
+  });
+}
+
+// Reusable procedural builder for Shenzhen Chengzhongcun ("Handshake") Apartment Buildings
+function buildHandshakeBuilding({
+  x0, x1, z0, z1, floors, wallHex, trimHex, frontFace = 'Z+', groundOpen = true
+}) {
+  const floorH = 2.65;
+  const yBase = 0.16;
+  const yTop = yBase + 3.35 + (floors - 1) * floorH;
+  const zStreet = frontFace === 'Z+' ? z1 : z0;
+  const dirZ = frontFace === 'Z+' ? 1 : -1;
+
+  // Ground floor side piers & back wall (leaving recessed shopfront open!)
+  fillVoxels(x0, yBase, z0, x0 + 0.5, yBase + 3.35, z1, trimHex, 'rough', 0.25, 0.025);
+  fillVoxels(x1 - 0.5, yBase, z0, x1, yBase + 3.35, z1, trimHex, 'rough', 0.25, 0.025);
+  const backZ0 = frontFace === 'Z+' ? z0 : z1 - 0.5;
+  const backZ1 = frontFace === 'Z+' ? z0 + 0.5 : z1;
+  fillVoxels(x0 + 0.5, yBase, backZ0, x1 - 0.5, yBase + 3.35, backZ1, 0x262932, 'rough', 0.25, 0.02);
+  // Dark interior ceiling/floor slab above ground shopfront
+  fillVoxels(x0, yBase + 3.10, z0, x1, yBase + 3.38, z1, trimHex, 'rough', 0.25, 0.02);
+
+  if (!groundOpen) {
+    fillVoxels(x0 + 0.5, yBase, zStreet - (dirZ > 0 ? 0.5 : 0), x1 - 0.5, yBase + 3.1, zStreet + (dirZ > 0 ? 0 : 0.5), wallHex, 'rough', 0.25, 0.03);
+  }
+
+  // Upper residential stories (hollow shell of 0.25m mosaic-tile voxels!)
+  if (floors > 1) {
+    fillVoxels(x0, yBase + 3.35, z0, x1, yTop, z1, (ix, iy, iz, cx, cy, cz) => {
+      // Horizontal floor band courses
+      const relY = (cy - (yBase + 3.35)) % floorH;
+      if (relY < 0.24) return trimHex;
+      // Leave recessed window bays on street-facing facade
+      const onFront = Math.abs(cz - zStreet) < 0.30;
+      if (onFront && relY > 0.72 && relY < 2.05) {
+        const localX = cx - x0;
+        const span = x1 - x0;
+        const winPitch = 2.15;
+        const m = ((localX - 0.65) % winPitch + winPitch) % winPitch;
+        if (localX > 0.7 && localX < span - 0.7 && m < 1.25) {
+          return null; // Window cutout!
+        }
+      }
+      return wallHex;
+    }, 'rough', 0.25, 0.032, true);
+
+    // Populate upper windows: glowing panes, security cages (防盗网), AC units, laundry poles!
+    const numCols = Math.max(1, Math.floor((x1 - x0 - 1.2) / 2.15));
+    for (let f = 1; f < floors; f++) {
+      const wy0 = yBase + 3.35 + (f - 1) * floorH + 0.75;
+      const wyMid = wy0 + 0.62;
+      for (let c = 0; c < numCols; c++) {
+        const wx = x0 + 0.65 + c * 2.15 + 0.62;
+        if (wx > x1 - 0.8) continue;
+
+        // Lit or dark apartment window pane recessed slightly inside wall
+        const litRoll = rng();
+        const paneZ = zStreet - dirZ * 0.22;
+        if (litRoll < 0.62) {
+          const winPalette = [0xffb86b, 0xffd28a, 0x7be0ff, 0xffe0a3, 0xff9466];
+          const wCol = pick(winPalette);
+          addBox(wx, wyMid, paneZ, 1.18, 1.22, 0.08, wCol, 'emissive', 0, 0, randRange(0.95, 1.45));
+          // Dark window mullion crossbars
+          addBox(wx, wyMid, paneZ + dirZ * 0.06, 0.06, 1.24, 0.06, 0x22262e, 'metal', 0);
+          addBox(wx, wyMid + 0.15, paneZ + dirZ * 0.06, 1.20, 0.06, 0.06, 0x22262e, 'metal', 0);
+        } else {
+          addBox(wx, wyMid, paneZ, 1.18, 1.22, 0.08, 0x151a24, 'rough', 0.01);
+          addBox(wx, wyMid, paneZ + dirZ * 0.05, 1.16, 1.20, 0.04, 0x263348, 'glass', 0);
+        }
+
+        // Protruding steel security cage (防盗网) on ~70% of windows!
+        if (rng() < 0.72) {
+          const cageD = 0.36;
+          const czOut = zStreet + dirZ * cageD;
+          const cageHex = rng() < 0.5 ? 0x4b535e : 0x5c463c; // galvanized or slightly rusty
+          // Bottom & top cage frames + vertical bars
+          addBox(wx, wy0 - 0.02, zStreet + dirZ * cageD * 0.5, 1.32, 0.05, cageD, cageHex, 'metal', 0.02);
+          addBox(wx, wy0 + 1.30, zStreet + dirZ * (cageD * 0.5 + 0.05), 1.38, 0.06, cageD + 0.12, 0x334854, 'rough', 0.02); // tin rain hood!
+          for (let bx = -0.62; bx <= 0.63; bx += 0.205) {
+            addBox(wx + bx, wyMid, czOut, 0.032, 1.28, 0.032, cageHex, 'metal', 0.01);
+          }
+          addBox(wx, wyMid, czOut, 1.30, 0.035, 0.035, cageHex, 'metal', 0.01);
+          // Tiny potted plant or flower box inside cage!
+          if (rng() < 0.55) {
+            addBox(wx - 0.3, wy0 + 0.09, czOut - dirZ * 0.12, 0.24, 0.16, 0.18, 0x8f432a, 'rough', 0.02);
+            addBox(wx - 0.3, wy0 + 0.24, czOut - dirZ * 0.12, 0.28, 0.20, 0.22, 0x2d7a43, 'rough', 0.04);
+          }
+          // Bamboo laundry pole with hanging colorful voxel shirts!
+          if (rng() < 0.38) {
+            const poleLen = 0.85;
+            addBox(wx + 0.1, wy0 + 0.98, zStreet + dirZ * (0.25 + poleLen * 0.5), 0.04, 0.04, poleLen, 0xa88c54, 'rough', 0.02);
+            const shirtCols = [0xe84a5f, 0x3b8beb, 0xf7c844, 0xf2f4f8, 0x4ecdc4];
+            for (let s = 0; s < 2; s++) {
+              const szPos = zStreet + dirZ * (0.48 + s * 0.30);
+              addBox(wx + 0.1, wy0 + 0.72, szPos, 0.08, 0.42, 0.22, pick(shirtCols), 'rough', 0.02);
+            }
+          }
+        }
+
+        // Split AC outdoor unit (空调外机) next to window + dripping drain tube!
+        if (rng() < 0.65 && wx + 0.92 < x1 - 0.25) {
+          const acX = wx + 0.92;
+          const acY = wy0 + 0.32;
+          const acZ = zStreet + dirZ * 0.20;
+          addBox(acX, acY, acZ, 0.58, 0.42, 0.32, 0xcfd4dc, 'rough', 0.02);
+          // Dark circular fan grille in micro-voxels
+          addBox(acX - 0.10, acY, acZ + dirZ * 0.165, 0.26, 0.26, 0.03, 0x232730, 'metal', 0.01);
+          addBox(acX + 0.17, acY + 0.06, acZ + dirZ * 0.165, 0.12, 0.18, 0.02, 0x454c59, 'metal', 0.01);
+          // Brackets + copper/white coolant pipe
+          addBox(acX - 0.22, acY - 0.24, acZ, 0.04, 0.06, 0.34, 0x3b404a, 'metal', 0);
+          addBox(acX + 0.22, acY - 0.24, acZ, 0.04, 0.06, 0.34, 0x3b404a, 'metal', 0);
+          if (f <= 2 && Math.abs(acZ) < 5.8) {
+            dripSources.push({ x: acX + 0.2, y: acY - 0.26, z: acZ + dirZ * 0.12 });
+          }
+        }
+      }
+    }
+    // Add glowing apartment windows on outer back & end walls so 360° diorama views look alive!
+    const zBack = frontFace === 'Z+' ? z0 : z1;
+    for (let f = 1; f < floors; f++) {
+      const wyMid = yBase + 3.35 + (f - 1) * floorH + 1.37;
+      for (let wx = x0 + 1.3; wx < x1 - 1.2; wx += 2.4) {
+        if (rng() < 0.55) {
+          addBox(wx, wyMid, zBack - dirZ * 0.03, 0.95, 1.05, 0.08, pick([0xffc278, 0x7be0ff, 0xffa95e]), 'emissive', 0, 0, 1.15);
+          addBox(wx, wyMid, zBack - dirZ * 0.07, 0.05, 1.06, 0.05, 0x22262e, 'metal', 0);
+        }
+      }
+      // End-wall windows if exposed at diorama West/East edge
+      if (x0 < -14.2 || x1 > 14.2) {
+        const ex = x0 < -14.2 ? x0 - 0.03 : x1 + 0.03;
+        for (let wz = z0 + 1.3; wz < z1 - 1.3; wz += 2.1) {
+          if (rng() < 0.58) {
+            addBox(ex, wyMid, wz, 0.08, 1.05, 0.92, pick([0xffc880, 0xffe0a3, 0x7ce2ff]), 'emissive', 0, 0, 1.15);
+          }
+        }
+      }
+    }
+  }
+
+  // Rooftop parapet wall, tar roof pad, blue water tank & solar heater!
+  fillVoxels(x0, yTop, z0, x1, yTop + 0.22, z1, 0x2b2f38, 'rough', 0.5, 0.02);
+  fillVoxels(x0, yTop + 0.22, z0, x1, yTop + 0.72, z0 + 0.25, trimHex, 'rough', 0.25, 0.02);
+  fillVoxels(x0, yTop + 0.22, z1 - 0.25, x1, yTop + 0.72, z1, trimHex, 'rough', 0.25, 0.02);
+  fillVoxels(x0, yTop + 0.22, z0 + 0.25, x0 + 0.25, yTop + 0.72, z1 - 0.25, trimHex, 'rough', 0.25, 0.02);
+  fillVoxels(x1 - 0.25, yTop + 0.22, z0 + 0.25, x1, yTop + 0.72, z1 - 0.25, trimHex, 'rough', 0.25, 0.02);
+
+  if (floors >= 3) {
+    // Blue cylindrical-voxel rooftop water tank
+    const tx = x0 + 1.4, tz = (z0 + z1) * 0.5 - dirZ * 0.6;
+    for (let dx = -2; dx <= 2; dx++) {
+      for (let dz = -2; dz <= 2; dz++) {
+        if (dx * dx + dz * dz <= 5) {
+          addBox(tx + dx * 0.22, yTop + 0.95, tz + dz * 0.22, 0.21, 1.35, 0.21, 0x1e64b8, 'rough', 0.02);
+        }
+      }
+    }
+    // Solar water heater array
+    const sx = x1 - 1.8, sz = tz;
+    addBox(sx, yTop + 1.05, sz, 1.45, 0.34, 0.34, 0xd6dce5, 'metal', 0.01);
+    for (let t = -0.6; t <= 0.61; t += 0.15) {
+      addBox(sx + t, yTop + 0.68, sz + dirZ * 0.32, 0.10, 0.78, 0.10, 0x1d2b44, 'metal', 0.01, 0, 1, dirZ * 0.55);
+    }
+  }
+  return { yTop };
+}
+
+// ============================================================================
+// 4. MARKET BUILDINGS, STALLS, WOKS, NEON SIGNS, WIRES & SWAYING LANTERNS
+// ============================================================================
+const steamSources = [];   // { x, y, z, spread, speed, scale }
+const fireSources = [];    // { x, y, z, w, d, kind: 'wok' | 'bbq' }
+const swayingLanterns = []; // { mesh, baseRotZ, phase, speed }
+
+// Helper: striped wet retractable awning (drips water from front edge!)
+function buildStripedAwning(x0, x1, yTop, zWall, zOut, colA, colB) {
+  const stepsZ = 8;
+  const colsX = Math.max(4, Math.round((x1 - x0) / 0.28));
+  const dx = (x1 - x0) / colsX;
+  const dz = (zOut - zWall) / stepsZ;
+  for (let ix = 0; ix < colsX; ix++) {
+    const cHex = (ix % 2 === 0) ? colA : colB;
+    for (let iz = 0; iz < stepsZ; iz++) {
+      const t = (iz + 0.5) / stepsZ;
+      const cy = yTop - t * 0.52;
+      const cz = zWall + (iz + 0.5) * dz;
+      addBox(x0 + (ix + 0.5) * dx, cy, cz, dx * 0.98, 0.06, Math.abs(dz) * 1.08, cHex, 'rough', 0.015);
+    }
+    // Scalloped front valance fringe
+    addBox(x0 + (ix + 0.5) * dx, yTop - 0.58, zOut, dx * 0.92, 0.11, 0.04, cHex, 'rough', 0.01);
+  }
+  // Support iron arms
+  addBox(x0 + 0.15, yTop - 0.42, (zWall + zOut) * 0.5, 0.04, 0.04, Math.abs(zOut - zWall), 0x2c3038, 'metal', 0);
+  addBox(x1 - 0.15, yTop - 0.42, (zWall + zOut) * 0.5, 0.04, 0.04, Math.abs(zOut - zWall), 0x2c3038, 'metal', 0);
+  // Register 2 raindrop drip points along awning valance!
+  dripSources.push({ x: x0 + (x1 - x0) * 0.28, y: yTop - 0.63, z: zOut });
+  dripSources.push({ x: x0 + (x1 - x0) * 0.74, y: yTop - 0.63, z: zOut });
+}
+
+// Helper: Night-market folding table + tiny plastic stools + dishes/chopsticks/bottles
+function buildDiningTable(tx, ty, tz, tableHex = 0x9c2b23, stoolHex = 0x1d6fd6, hasBeer = true) {
+  // Tabletop & folding metal legs
+  addBox(tx, ty + 0.56, tz, 1.05, 0.06, 0.85, tableHex, 'rough', 0.02);
+  for (const sx of [-0.42, 0.42]) {
+    for (const sz of [-0.34, 0.34]) {
+      addBox(tx + sx, ty + 0.28, tz + sz, 0.045, 0.55, 0.045, 0x6c737f, 'metal', 0.01);
+    }
+  }
+  // Bowls of noodles/stir-fry on table
+  addBox(tx - 0.24, ty + 0.63, tz - 0.12, 0.22, 0.09, 0.22, 0xf0eee9, 'rough', 0.01);
+  addBox(tx - 0.24, ty + 0.68, tz - 0.12, 0.17, 0.04, 0.17, 0xd96b27, 'rough', 0.02); // orange stir-fry
+  addBox(tx + 0.22, ty + 0.63, tz + 0.14, 0.22, 0.09, 0.22, 0xf0eee9, 'rough', 0.01);
+  addBox(tx + 0.22, ty + 0.68, tz + 0.14, 0.17, 0.04, 0.17, 0xe3b341, 'rough', 0.02); // noodles
+  // Tiny red/blue tissue box (signature dai pai dong detail!)
+  addBox(tx + 0.02, ty + 0.64, tz - 0.22, 0.16, 0.10, 0.11, 0xd63864, 'rough', 0.01);
+  addBox(tx + 0.02, ty + 0.71, tz - 0.22, 0.07, 0.06, 0.04, 0xfafafa, 'rough', 0);
+
+  if (hasBeer) {
+    // Green glass Tsingtao/Zhujiang voxel beer bottles!
+    for (const [bx, bz] of [[0.28, -0.18], [-0.26, 0.20]]) {
+      addBox(tx + bx, ty + 0.66, tz + bz, 0.07, 0.15, 0.07, 0x1e824c, 'glass', 0);
+      addBox(tx + bx, ty + 0.76, tz + bz, 0.035, 0.08, 0.035, 0x1e824c, 'glass', 0);
+    }
+  }
+  // 4 Iconic stackable Chinese plastic stools (塑料凳) around table
+  for (const [ox, oz] of [[-0.68, 0], [0.68, 0], [0, -0.62], [0, 0.62]]) {
+    addBox(tx + ox, ty + 0.31, tz + oz, 0.28, 0.05, 0.28, stoolHex, 'rough', 0.02);
+    for (const lx of [-0.10, 0.10]) {
+      for (const lz of [-0.10, 0.10]) {
+        addBox(tx + ox + lx, ty + 0.155, tz + oz + lz, 0.045, 0.30, 0.045, stoolHex, 'rough', 0.01);
+      }
+    }
+  }
+}
+
+// Helper: Build a single swaying red & gold Chinese voxel lantern mesh
+function createLanternMesh(scale = 1.0) {
+  const parts = [];
+  const eParts = [];
+  // Gold top & bottom caps + tassel
+  parts.push({ x: 0, y: 0.20 * scale, z: 0, sx: 0.15 * scale, sy: 0.05 * scale, sz: 0.15 * scale, c: 0xd9a438 });
+  parts.push({ x: 0, y: -0.20 * scale, z: 0, sx: 0.15 * scale, sy: 0.05 * scale, sz: 0.15 * scale, c: 0xd9a438 });
+  parts.push({ x: 0, y: -0.31 * scale, z: 0, sx: 0.04 * scale, sy: 0.17 * scale, sz: 0.04 * scale, c: 0xe6392e });
+  parts.push({ x: 0, y: 0.27 * scale, z: 0, sx: 0.025 * scale, sy: 0.10 * scale, sz: 0.025 * scale, c: 0x22252c });
+  // Plump glowing red/orange voxel body
+  eParts.push({ x: 0, y: 0, z: 0, sx: 0.30 * scale, sy: 0.24 * scale, sz: 0.30 * scale, c: 0xff381e, hdr: 2.05 });
+  eParts.push({ x: 0, y: 0, z: 0, sx: 0.22 * scale, sy: 0.34 * scale, sz: 0.22 * scale, c: 0xff5c28, hdr: 1.85 });
+
+  const grp = new THREE.Group();
+  grp.add(buildPartMesh(parts, false, false));
+  grp.add(buildPartMesh(eParts, true, false));
+  return grp;
+}
+
+// Helper: Voxelized catenary wire + optional hanging lanterns!
+function addCatenaryWire(x0, y0, z0, x1, y1, z1, sag = 0.45, numSteps = 28, withLanterns = 0) {
+  const p0 = new THREE.Vector3(x0, y0, z0);
+  const p1 = new THREE.Vector3(x1, y1, z1);
+  const totalLen = p0.distanceTo(p1);
+  const segLen = (totalLen / numSteps) * 1.08;
+  for (let i = 0; i < numSteps; i++) {
+    const t0 = i / numSteps;
+    const t1 = (i + 1) / numSteps;
+    const tm = (t0 + t1) * 0.5;
+    const dip0 = 4 * t0 * (1 - t0) * sag;
+    const dip1 = 4 * t1 * (1 - t1) * sag;
+    const dipM = 4 * tm * (1 - tm) * sag;
+    const vx0 = THREE.MathUtils.lerp(x0, x1, t0);
+    const vy0 = THREE.MathUtils.lerp(y0, y1, t0) - dip0;
+    const vz0 = THREE.MathUtils.lerp(z0, z1, t0);
+    const vx1 = THREE.MathUtils.lerp(x0, x1, t1);
+    const vy1 = THREE.MathUtils.lerp(y0, y1, t1) - dip1;
+    const vz1 = THREE.MathUtils.lerp(z0, z1, t1);
+
+    const mx = (vx0 + vx1) * 0.5;
+    const my = THREE.MathUtils.lerp(y0, y1, tm) - dipM;
+    const mz = (vz0 + vz1) * 0.5;
+    const yaw = Math.atan2(vx1 - vx0, vz1 - vz0);
+    const horiz = Math.hypot(vx1 - vx0, vz1 - vz0);
+    const pitch = -Math.atan2(vy1 - vy0, horiz);
+    addBox(mx, my, mz, 0.032, 0.032, segLen, 0x161920, 'metal', 0, yaw, 1.0, pitch, 0);
+  }
+  if (withLanterns > 0) {
+    for (let k = 1; k <= withLanterns; k++) {
+      const t = k / (withLanterns + 1);
+      const lx = THREE.MathUtils.lerp(x0, x1, t);
+      const ly = THREE.MathUtils.lerp(y0, y1, t) - 4 * t * (1 - t) * sag - 0.30;
+      const lz = THREE.MathUtils.lerp(z0, z1, t);
+      const lMesh = createLanternMesh(0.95);
+      lMesh.position.set(lx, ly, lz);
+      upperWorldGroup.add(lMesh);
+      swayingLanterns.push({ mesh: lMesh, phase: lx * 0.7 + lz * 0.5, speed: randRange(1.6, 2.4) });
+      if (k % 2 === 1) {
+        addWarmLight(lx, ly - 0.1, lz, 0xff4d26, 0.85, 5.2);
+      }
+    }
+  }
+}
+
+function buildBuildingsStallsAndWires() {
+  // ---- A. NORTH HANDSHAKE BUILDINGS (4-5 stories, Z: -10.1 .. -5.25) ----
+  const bN1 = buildHandshakeBuilding({
+    x0: -14.6, x1: -8.0, z0: -10.1, z1: -5.25, floors: 4, wallHex: 0xc2bdb0, trimHex: 0x5c626e, frontFace: 'Z+'
+  });
+  // Narrow "Sky-Slit" Side Alley (X: -8.0 .. -6.85) with stacked beer crates & red lantern!
+  for (let cy = 0.3; cy < 1.3; cy += 0.32) {
+    addBox(-7.65, cy, -5.8, 0.42, 0.30, 0.42, 0x227a48, 'rough', 0.02);
+    addBox(-7.20, cy, -6.3, 0.42, 0.30, 0.42, 0x1e6bb8, 'rough', 0.02);
+  }
+  addBox(-7.88, 6.0, -5.4, 0.12, 11.2, 0.12, 0x454c57, 'metal', 0.02); // tall cast-iron drainpipe
+  const alleyLantern = createLanternMesh(0.9);
+  alleyLantern.position.set(-7.42, 2.85, -5.7);
+  upperWorldGroup.add(alleyLantern);
+  swayingLanterns.push({ mesh: alleyLantern, phase: 1.2, speed: 1.8 });
+  addWarmLight(-7.42, 2.6, -5.6, 0xff3b1f, 1.1, 4.8);
+
+  const bN2 = buildHandshakeBuilding({
+    x0: -6.85, x1: 0.40, z0: -10.1, z1: -5.25, floors: 5, wallHex: 0xa66f63, trimHex: 0x543e3b, frontFace: 'Z+'
+  });
+  const bN3 = buildHandshakeBuilding({
+    x0: 0.55, x1: 7.70, z0: -10.1, z1: -5.25, floors: 4, wallHex: 0x7a948e, trimHex: 0x445754, frontFace: 'Z+'
+  });
+  const bN4 = buildHandshakeBuilding({
+    x0: 7.85, x1: 14.6, z0: -10.1, z1: -5.25, floors: 5, wallHex: 0x9b907f, trimHex: 0x524c44, frontFace: 'Z+'
+  });
+  // Rooftop Billboard Frame on N4 ("夜市")
+  addBox(11.2, bN4.yTop + 1.45, -6.0, 0.12, 2.1, 0.12, 0x2b303a, 'metal', 0);
+  addBox(13.4, bN4.yTop + 1.45, -6.0, 0.12, 2.1, 0.12, 0x2b303a, 'metal', 0);
+  buildNeonSign({
+    x: 12.3, y: bN4.yTop + 1.65, z: -5.9, text: '夜市', vertical: false, facing: 'Z+',
+    bgHex: 0x141622, borderHex: 0xff2a85, textHex: 0x00f5ff, pxSize: 0.105, hdr: 2.3, brackets: false, doubleSided: true, addLight: true
+  });
+
+  // ---- B. SOUTH NIGHT-MARKET ARCADE & OPEN-AIR ROOFTOP BEER GARDEN ----
+  // Low sculptural 1-story arcade (Y = 3.51m) so exterior hero views see straight into the wet market canyon,
+  // with a compact 2-story mid-east corner pavilion set back at Z: 7.0..10.1!
+  const bS1 = buildHandshakeBuilding({
+    x0: -14.6, x1: -8.4, z0: 5.5, z1: 10.0, floors: 1, wallHex: 0x6b7c91, trimHex: 0x434e5e, frontFace: 'Z-'
+  });
+  const bS2 = buildHandshakeBuilding({
+    x0: -8.3, x1: 8.3, z0: 5.5, z1: 10.0, floors: 1, wallHex: 0x8c7f73, trimHex: 0x4d453f, frontFace: 'Z-'
+  });
+  const bS3 = buildHandshakeBuilding({
+    x0: 8.4, x1: 14.6, z0: 5.5, z1: 10.0, floors: 1, wallHex: 0x8e797c, trimHex: 0x4f4346, frontFace: 'Z-'
+  });
+  // Set-back 2nd-story rooftop tea/mahjong pavilion at (X: 2.2..7.8, Z: 7.1..9.9) with glowing windows & 茶 sign!
+  buildHandshakeBuilding({
+    x0: 2.2, x1: 7.8, z0: 7.1, z1: 9.9, floors: 2, wallHex: 0x7a8a84, trimHex: 0x45524d, frontFace: 'Z-', groundOpen: false
+  });
+  addBox(3.6, 4.90, 7.07, 1.15, 1.15, 0.08, 0xffca7a, 'emissive', 0, 0, 1.35);
+  addBox(6.4, 4.90, 7.07, 1.15, 1.15, 0.08, 0xffca7a, 'emissive', 0, 0, 1.35);
+  buildNeonSign({
+    x: 5.0, y: 5.05, z: 7.02, text: '茶', vertical: false, facing: 'Z-',
+    bgHex: 0x131622, borderHex: 0x5cffb8, textHex: 0xffe66d, pxSize: 0.075, hdr: 2.0, brackets: false, addLight: true
+  });
+
+  // East Street Portal Lamps & High Overhead Banner (X = +14.15, clear portal Y = 0..6.35m!)
+  for (const sz of [-1, 1]) {
+    const pz = sz * 2.75;
+    fillVoxels(14.02, 0.16, pz - 0.18, 14.30, 6.85, pz + 0.18, 0x3b414d, 'metal', 0.22, 0.02);
+    addBox(14.16, 4.55, pz - sz * 0.36, 0.18, 0.12, 0.55, 0x2c313b, 'metal', 0);
+    addBox(14.16, 4.46, pz - sz * 0.55, 0.22, 0.09, 0.22, 0xffd28a, 'emissive', 0, 0, 2.2);
+  }
+  addWarmLight(13.9, 4.1, 0.0, 0xffb86c, 1.4, 8.5);
+  fillVoxels(14.04, 6.40, -2.90, 14.28, 7.20, 2.90, 0x1f2430, 'metal', 0.24, 0.02);
+  buildNeonSign({
+    x: 14.00, y: 6.80, z: 0, text: '夜市', vertical: false, facing: 'X-',
+    bgHex: 0x121520, borderHex: 0xff3b9a, textHex: 0xffe600, pxSize: 0.082, hdr: 2.2, brackets: false, doubleSided: true, addLight: true
+  });
+
+  // Glowing South Ground-Floor Arcade Shopfronts (facing street Z- AND exterior South windows at Z = +10.0!)
+  // 1) Shenzhen 24h Convenience Store (X: -14.1 .. -8.9) — iconic orange/green/white glowing fascia!
+  addBox(-11.5, 2.92, 5.44, 5.2, 0.16, 0.12, 0xff6b00, 'emissive', 0, 0, 1.8);
+  addBox(-11.5, 2.76, 5.44, 5.2, 0.12, 0.12, 0xf5f7fa, 'emissive', 0, 0, 1.7);
+  addBox(-11.5, 2.62, 5.44, 5.2, 0.12, 0.12, 0x00b853, 'emissive', 0, 0, 1.8);
+  addBox(-11.5, 1.50, 6.60, 4.4, 2.10, 0.12, 0xdff6ff, 'emissive', 0, 0, 1.25); // bright fridge backwall
+  addWarmLight(-11.5, 2.1, 5.1, 0xfff3d6, 1.4, 6.2);
+
+  // 2) Cantonese Roast Meat & Cha Chaan Teng (X: -7.8 .. -2.0) + Boba/Arcade (X: -1.6 .. +7.8) + Beer Bar (X: +8.9 .. +14.1)
+  addBox(-5.0, 1.55, 6.8, 4.8, 2.0, 0.12, 0xffb35c, 'emissive', 0, 0, 1.15);
+  addBox( 1.2, 1.55, 6.8, 4.5, 2.0, 0.12, 0x6ce5ff, 'emissive', 0, 0, 1.10);
+  addBox(11.5, 1.55, 6.8, 4.4, 2.0, 0.12, 0xff9f4d, 'emissive', 0, 0, 1.20);
+  addWarmLight(11.5, 2.1, 5.1, 0xffaa55, 1.45, 6.5);
+
+  // Warm lit exterior shop/cafe windows along South outer wall (Z = +10.02) so front diorama views glow!
+  for (const wx of [-12.8, -10.2, -6.4, -3.6, -0.8, 9.8, 12.6]) {
+    addBox(wx, 1.75, 10.03, 1.45, 1.25, 0.06, pick([0xffc478, 0xffe09e, 0x7ce2ff]), 'emissive', 0, 0, 1.25);
+    addBox(wx, 1.75, 10.07, 0.06, 1.28, 0.05, 0x262a33, 'metal', 0);
+  }
+
+  // Populate South 2nd-Floor Open-Air Rooftop Night Terrace (Y = bS2.yTop + 0.22 = 3.73m)!
+  const roofY = bS2.yTop + 0.22;
+  buildDiningTable(-11.2, roofY, 7.4, 0x9c2b23, 0x1d6fd6, true);
+  buildDiningTable( -3.8, roofY, 7.2, 0x8c2d25, 0xd63636, true);
+  buildDiningTable( -0.2, roofY, 7.5, 0x2b6e54, 0xf7b731, true);
+  buildDiningTable( 11.2, roofY, 7.4, 0x2268a8, 0xd63636, true);
+  addWarmLight(-11.2, roofY + 1.8, 7.2, 0xff9f43, 1.25, 6.5);
+  addWarmLight( -2.2, roofY + 1.8, 7.2, 0xff9f43, 1.35, 7.0);
+  addWarmLight( 11.2, roofY + 1.8, 7.2, 0xff9f43, 1.25, 6.5);
+
+  // Rooftop string poles, glowing lanterns & steel sign-masts for South cantilevered neon signs
+  for (const rx of [-13.2, -7.5, -2.5, 2.0, 9.0, 13.4]) {
+    addBox(rx, roofY + 1.25, 5.75, 0.08, 2.5, 0.08, 0x2a2e36, 'metal', 0);
+  }
+  addBox(-10.5, roofY + 1.15, 5.55, 0.14, 2.3, 0.14, 0x2b303a, 'metal', 0);
+  addBox(  9.6, roofY + 1.25, 5.55, 0.14, 2.5, 0.14, 0x2b303a, 'metal', 0);
+  addCatenaryWire(-13.2, roofY + 2.35, 5.75, -7.5, roofY + 2.35, 5.75, 0.25, 16, 2);
+  addCatenaryWire( -7.5, roofY + 2.35, 5.75, -2.5, roofY + 2.35, 5.75, 0.25, 16, 2);
+  addCatenaryWire( -2.5, roofY + 2.35, 5.75,  2.0, roofY + 2.35, 5.75, 0.22, 14, 2);
+  addCatenaryWire(  9.0, roofY + 2.35, 5.75, 13.4, roofY + 2.35, 5.75, 0.24, 14, 2);
+
+  // ---- C. GROUND SHOPFRONTS & NORTH SIDEWALK STALLS ----
+  // 1. Old Chen's Stir-Fry & Flaming Wok Kitchen (X: -14.0 .. -8.2, Z: -5.25 .. -2.8)
+  fillVoxels(-13.8, 0.16, -9.5, -8.5, 3.1, -6.8, 0x2c2825, 'rough', 0.5, 0.02); // warm kitchen backwall
+  addWarmLight(-11.2, 2.4, -4.8, 0xff9f43, 2.2, 8.5);
+  buildStripedAwning(-13.5, -8.3, 3.15, -5.25, -2.95, 0xb8292f, 0x1f4f96);
+
+  // Stainless steel commercial twin-wok stove at front of shop (-11.6, Z = -4.65)!
+  fillVoxels(-12.5, 0.16, -5.05, -10.3, 0.96, -4.25, 0x8e97a4, 'metal', 0.25, 0.015);
+  // Twin dark iron woks + roaring flames underneath + rising steam!
+  for (const wx of [-11.85, -10.95]) {
+    addBox(wx, 1.01, -4.62, 0.56, 0.10, 0.56, 0x1b1e24, 'metal', 0.01);
+    addBox(wx, 1.07, -4.62, 0.44, 0.07, 0.44, 0xd46f2a, 'rough', 0.03); // sizzling stir-fry inside wok!
+    addBox(wx, 0.96, -4.62, 0.36, 0.06, 0.36, 0xff6b1a, 'emissive', 0, 0, 2.5);
+    steamSources.push({ x: wx, y: 1.16, z: -4.62, spread: 0.26, speed: 1.15, scale: 1.25 });
+    fireSources.push({ x: wx, y: 0.97, z: -4.62, w: 0.38, d: 0.38, kind: 'wok' });
+  }
+  // Outdoor stir-fry dining tables under awning!
+  buildDiningTable(-12.6, 0.16, -3.45, 0xa32929, 0xd93838, true);
+  buildDiningTable(-9.3, 0.16, -3.50, 0xa32929, 0x2270d6, true);
+
+  // 2. Cantonese Rice-Roll & Bamboo Dim Sum Steamers + Phone Repair (X: -6.6 .. 0.2)
+  buildStripedAwning(-6.5, -2.6, 3.10, -5.25, -3.15, 0x226b58, 0xd9cdb4);
+  addWarmLight(-4.6, 2.35, -4.5, 0xffb35c, 1.8, 7.0);
+  // Stainless steamer cart at (-4.6, Z = -4.2) with tall bamboo steamer stacks!
+  fillVoxels(-5.5, 0.16, -4.6, -3.6, 0.96, -3.85, 0x9aa3b0, 'metal', 0.25, 0.015);
+  for (const [sx, heights] of [[-5.05, 5], [-4.55, 4], [-4.05, 3]]) {
+    for (let h = 0; h < heights; h++) {
+      addBox(sx, 1.04 + h * 0.15, -4.22, 0.38, 0.135, 0.38, 0xc79c5e, 'rough', 0.02);
+      addBox(sx, 1.10 + h * 0.15, -4.22, 0.40, 0.025, 0.40, 0x8f6b39, 'rough', 0.01);
+    }
+    steamSources.push({ x: sx, y: 1.06 + heights * 0.15, z: -4.22, spread: 0.20, speed: 0.95, scale: 1.1 });
+  }
+  // Huaqiang Phone & Electronics Repair counter (-1.8 .. 0.1) with cool cyan bench light!
+  fillVoxels(-2.1, 0.16, -5.1, -0.1, 1.02, -4.3, 0x2a3342, 'rough', 0.25, 0.02);
+  addBox(-1.1, 1.25, -4.65, 1.6, 0.45, 0.55, 0x7fd8ff, 'glass', 0);
+  addBox(-1.1, 1.06, -4.65, 1.4, 0.05, 0.42, 0x00e5ff, 'emissive', 0, 0, 1.6);
+  addWarmLight(-1.1, 2.2, -4.5, 0x38d9ff, 1.4, 6.0);
+
+  // 3. Shenzhen-HK Live Seafood Shop (X: 0.8 .. 7.4) with glowing oxygenated voxel fish tanks!
+  buildStripedAwning(0.9, 6.8, 3.12, -5.25, -3.10, 0x1b5e8a, 0xe8edf2);
+  addWarmLight(3.8, 2.35, -4.4, 0x6ce5ff, 1.7, 7.5);
+  for (let tier = 0; tier < 2; tier++) {
+    for (let tx = 1.4; tx <= 3.8; tx += 1.15) {
+      const ty = 0.45 + tier * 0.68;
+      const tz = -4.55 + (1 - tier) * 0.42;
+      addBox(tx, ty - 0.22, tz, 1.02, 0.12, 0.52, 0x28323d, 'metal', 0.01);
+      addBox(tx, ty + 0.12, tz, 0.98, 0.52, 0.48, 0x1cc8ff, 'glass', 0);
+      addBox(tx, ty - 0.10, tz, 0.90, 0.05, 0.40, 0x00d9ff, 'emissive', 0, 0, 1.5);
+      // Tiny orange/coral voxel fish & crabs inside tank!
+      addBox(tx - 0.18, ty + 0.10, tz, 0.14, 0.07, 0.06, 0xff6b35, 'rough', 0);
+      addBox(tx + 0.20, ty + 0.18, tz + 0.05, 0.12, 0.06, 0.05, 0xff9f1c, 'rough', 0);
+    }
+  }
+  // Red plastic seafood tubs & electronic scale on stand (haggling spot at X = 5.3, Z = -3.85!)
+  addBox(5.35, 0.56, -3.95, 1.35, 0.78, 0.68, 0x3c4452, 'metal', 0.02);
+  addBox(4.95, 1.04, -3.95, 0.45, 0.18, 0.45, 0xc92a2a, 'rough', 0.01);
+  addBox(5.65, 1.03, -3.95, 0.34, 0.14, 0.32, 0xdce1e8, 'metal', 0.01);
+  addBox(5.65, 1.14, -3.82, 0.22, 0.10, 0.04, 0x39ff14, 'emissive', 0, 0, 1.7); // green digital price readout!
+
+  // 4. Hand-Punched Lemon Tea Bar "手打柠檬茶" (X: 8.1 .. 14.0)
+  buildStripedAwning(8.2, 13.6, 3.15, -5.25, -3.10, 0x2ca84d, 0xf5d742);
+  addWarmLight(10.8, 2.35, -4.3, 0xb8ff47, 1.75, 7.5);
+  fillVoxels(8.6, 0.16, -4.75, 12.8, 1.08, -3.95, 0x243b2c, 'rough', 0.25, 0.02);
+  addBox(10.7, 1.11, -4.35, 4.25, 0.07, 0.86, 0xe8ece6, 'rough', 0.01);
+  // Pyramids of bright yellow & green voxel lemons + WeChat/Alipay QR payment plaques!
+  for (let lx = 9.1; lx <= 10.1; lx += 0.22) {
+    addBox(lx, 1.22, -4.15, 0.18, 0.15, 0.18, 0xf7d716, 'rough', 0.02);
+    addBox(lx + 0.1, 1.22, -4.38, 0.17, 0.15, 0.17, 0x5cd63a, 'rough', 0.02);
+  }
+  // Iconic Green (WeChat Pay) & Blue (Alipay) glowing QR stands on counter!
+  addBox(11.65, 1.24, -4.05, 0.16, 0.22, 0.04, 0x09bb07, 'emissive', 0, 0, 1.7);
+  addBox(11.90, 1.24, -4.05, 0.16, 0.22, 0.04, 0x1677ff, 'emissive', 0, 0, 1.7);
+
+  // ---- D. SOUTH CURBSIDE FREESTANDING NIGHT MARKET STALLS (Z: +2.65 .. +4.75) ----
+  // 1. Charcoal Shaokao BBQ Skewer Cart "烧烤" (X: -12.6 .. -8.2)
+  fillVoxels(-12.0, 0.16, 2.85, -9.6, 0.98, 3.55, 0x3b3f4a, 'metal', 0.24, 0.02);
+  // Glowing red-hot charcoal ember bed + skewers!
+  addBox(-10.8, 1.01, 3.20, 2.15, 0.08, 0.42, 0xff3b14, 'emissive', 0, 0, 2.4);
+  for (let sx = -11.7; sx <= -9.9; sx += 0.16) {
+    addBox(sx, 1.08, 3.20, 0.06, 0.05, 0.54, 0xa86438, 'rough', 0.03);
+  }
+  steamSources.push({ x: -10.8, y: 1.15, z: 3.20, spread: 0.75, speed: 0.85, scale: 1.05 });
+  fireSources.push({ x: -10.8, y: 1.04, z: 3.20, w: 1.95, d: 0.36, kind: 'bbq' });
+  addWarmLight(-10.8, 1.9, 3.1, 0xff5e2b, 1.85, 6.8);
+  // Canopy tent over BBQ & outdoor dining table on South sidewalk!
+  for (const cx of [-12.2, -9.4]) {
+    for (const cz of [2.75, 4.35]) {
+      addBox(cx, 1.45, cz, 0.05, 2.55, 0.05, 0x5c6370, 'metal', 0);
+    }
+  }
+  fillVoxels(-12.35, 2.72, 2.65, -9.25, 2.88, 4.45, 0x9e262b, 'rough', 0.25, 0.02);
+  dripSources.push({ x: -10.8, y: 2.70, z: 2.66 });
+  buildDiningTable(-7.6, 0.16, 3.85, 0x2268a8, 0xd93838, true);
+
+  // 2. Sizzling Teppanyaki & Street Wok Cart #2 (X: -5.8 .. -2.8)
+  fillVoxels(-5.4, 0.16, 2.85, -3.2, 0.98, 3.60, 0x7a828f, 'metal', 0.24, 0.02);
+  addBox(-4.8, 1.03, 3.22, 0.56, 0.10, 0.56, 0x1b1e24, 'metal', 0.01);
+  addBox(-4.8, 0.97, 3.22, 0.36, 0.06, 0.36, 0xff7714, 'emissive', 0, 0, 2.5);
+  steamSources.push({ x: -4.8, y: 1.16, z: 3.22, spread: 0.26, speed: 1.20, scale: 1.3 });
+  fireSources.push({ x: -4.8, y: 0.98, z: 3.22, w: 0.38, d: 0.38, kind: 'wok' });
+  // Manhole gentle steam wisp too!
+  steamSources.push({ x: -2.6, y: 0.06, z: -0.15, spread: 0.16, speed: 0.48, scale: 0.72 });
+  // Umbrella canopy over Cart #2
+  addBox(-4.3, 1.55, 3.35, 0.06, 2.6, 0.06, 0x454b57, 'metal', 0);
+  fillVoxels(-5.65, 2.75, 2.55, -2.95, 2.92, 4.15, 0xd9821e, 'rough', 0.25, 0.02);
+  addWarmLight(-4.3, 2.45, 3.2, 0xffaa44, 1.65, 6.2);
+  // QR plaque on Cart #2
+  addBox(-3.55, 1.14, 2.92, 0.15, 0.20, 0.04, 0x09bb07, 'emissive', 0, 0, 1.6);
+
+  // 3. Tropical Night Fruit Stall — Durians, Melons & Mangosteens (X: -0.6 .. +3.2)
+  fillVoxels(-0.4, 0.16, 2.90, 2.8, 0.92, 3.85, 0x6e4f35, 'rough', 0.24, 0.025);
+  for (let fx = -0.1; fx <= 2.5; fx += 0.32) {
+    for (let fz = 3.08; fz <= 3.68; fz += 0.28) {
+      const fruitCol = fx < 0.8 ? 0xb5a628 : fx < 1.7 ? 0x2d7a3e : 0x5c2459; // durian, melon, mangosteen!
+      addBox(fx, 1.04, fz, 0.24, 0.20, 0.24, fruitCol, 'rough', 0.03);
+    }
+  }
+  for (const cx of [-0.45, 2.85]) {
+    addBox(cx, 1.50, 2.92, 0.05, 2.5, 0.05, 0x4a505c, 'metal', 0);
+    addBox(cx, 1.50, 3.88, 0.05, 2.5, 0.05, 0x4a505c, 'metal', 0);
+  }
+  fillVoxels(-0.6, 2.72, 2.75, 3.0, 2.88, 4.05, 0x1e6eb8, 'rough', 0.25, 0.02);
+  addWarmLight(1.2, 2.45, 3.35, 0xffe082, 1.6, 6.2);
+
+  // 4. Shenzhen LED Gadgets & Phone Cases Stall (X: +5.0 .. +8.4)
+  fillVoxels(5.2, 0.16, 2.95, 8.2, 0.94, 3.75, 0x252b38, 'rough', 0.24, 0.02);
+  addBox(6.7, 1.55, 3.62, 2.85, 1.15, 0.08, 0x1d222e, 'metal', 0.01);
+  // Glowing colorful phone case display grid!
+  const caseCols = [0xff2a85, 0x00f0ff, 0xffe600, 0x7b2cbf, 0x39ff14, 0xff6d00];
+  for (let gx = 5.45; gx <= 7.95; gx += 0.28) {
+    for (let gy = 1.15; gy <= 1.95; gy += 0.26) {
+      addBox(gx, gy, 3.55, 0.18, 0.22, 0.04, pick(caseCols), 'emissive', 0, 0, 1.35);
+    }
+  }
+  addWarmLight(6.7, 2.1, 3.2, 0xe056fd, 1.45, 6.0);
+
+  // ---- E. CANTILEVERED NEON SIGNS JUTTING INTO THE CANYON ----
+  // North side cantilevered signs (facing X+ and X- down the alley, anchored to Z = -5.25!)
+  const northSigns = [
+    { x: -10.8, y: 4.55, z: -3.95, text: '小炒', border: 0xffb800, col: 0xff2e4c, px: 0.082 },
+    { x: -5.2,  y: 5.35, z: -3.85, text: '肠粉', border: 0x00f0ff, col: 0xff4da6, px: 0.082 },
+    { x: -1.2,  y: 4.35, z: -4.10, text: '修',   border: 0x39ff14, col: 0x00e5ff, px: 0.085 },
+    { x: 2.8,   y: 5.15, z: -3.90, text: '海鲜', border: 0x00e5ff, col: 0xfff04d, px: 0.085 },
+    { x: 6.4,   y: 4.35, z: -4.05, text: '冰室', border: 0xff3b9a, col: 0x5cffb8, px: 0.078 },
+    { x: 9.8,   y: 5.35, z: -3.85, text: '柠檬茶', border: 0xb8ff29, col: 0xffe600, px: 0.076 }
+  ];
+  for (const s of northSigns) {
+    buildNeonSign({
+      x: s.x, y: s.y, z: s.z, text: s.text, vertical: true, facing: 'X+',
+      bgHex: 0x131622, borderHex: s.border, textHex: s.col, pxSize: s.px, hdr: 2.2, brackets: false, doubleSided: true, addLight: true
+    });
+    connectIronBracketZ(s.x, s.y, -5.25, s.z - 0.5, 1.3);
+  }
+
+  // South side cantilevered & parapet neon signs (anchored to Z = +5.5!)
+  const southSigns = [
+    { x: -10.5, y: 4.65, z: 4.15, text: '烧烤', border: 0xff9f1c, col: 0xff2a2a, px: 0.084, vert: true, face: 'X-' },
+    { x: -3.2,  y: 3.45, z: 5.35, text: '酒',   border: 0x00f5d4, col: 0xff4da6, px: 0.085, vert: false, face: 'Z-' },
+    { x: 4.2,   y: 3.45, z: 5.35, text: '夜市', border: 0xffe600, col: 0x00e5ff, px: 0.082, vert: false, face: 'Z-' },
+    { x: 9.6,   y: 4.85, z: 4.20, text: '烧烤', border: 0x00f0ff, col: 0xff3898, px: 0.080, vert: true, face: 'X-' }
+  ];
+  for (const s of southSigns) {
+    buildNeonSign({
+      x: s.x, y: s.y, z: s.z, text: s.text, vertical: s.vert, facing: s.face,
+      bgHex: 0x131622, borderHex: s.border, textHex: s.col, pxSize: s.px, hdr: 2.15, brackets: false, doubleSided: s.vert, addLight: true
+    });
+    if (s.vert) connectIronBracketZ(s.x, s.y, s.z + 0.5, 5.55, 1.25);
+  }
+
+  // ---- F. UTILITY POLES, TANGLED OVERHEAD WIRES & CRISSCROSSING LANTERN STRINGS ----
+  const poleXs = [-11.4, -3.6, 4.4, 10.4];
+  for (const px of poleXs) {
+    for (const pz of [-2.68, 2.68]) {
+      // Concrete utility pole with metal climbing rungs & junction box!
+      fillVoxels(px - 0.11, 0.16, pz - 0.11, px + 0.11, 7.6, pz + 0.11, 0x5b606b, 'rough', 0.22, 0.02);
+      addBox(px, 6.85, pz, 0.10, 0.10, 0.88, 0x2b303a, 'metal', 0);
+      addBox(px, 7.35, pz, 0.10, 0.10, 0.68, 0x2b303a, 'metal', 0);
+      addBox(px + 0.15, 3.2, pz, 0.16, 0.42, 0.28, 0x454d59, 'metal', 0.01); // telecom fiber box
+    }
+  }
+  // Longitudinal tangled cable bundles along both sides of street (Y = 6.7 .. 7.4m)
+  for (let i = 0; i < poleXs.length - 1; i++) {
+    const xA = poleXs[i], xB = poleXs[i + 1];
+    for (const sz of [-1, 1]) {
+      addCatenaryWire(xA, 6.85, sz * 2.45, xB, 6.85, sz * 2.45, 0.38, 22, 0);
+      addCatenaryWire(xA, 6.85, sz * 2.90, xB, 6.85, sz * 2.90, 0.52, 22, 0);
+      addCatenaryWire(xA, 7.35, sz * 2.68, xB, 7.35, sz * 2.68, 0.28, 22, 0);
+    }
+  }
+  // Cross-street tangled power/fiber drops & glowing red lantern strings (kept at X <= 10.4 & Y >= 5.3m!)
+  const crossSpans = [
+    { x0: -11.4, z0: -2.68, x1: -11.4, z1: 2.68, y0: 6.7, y1: 6.7, sag: 0.45, lanterns: 4 },
+    { x0: -11.4, z0: -2.68, x1: -7.5,  z1: 5.45, y0: 6.9, y1: 5.8, sag: 0.50, lanterns: 0 },
+    { x0: -7.8,  z0: -5.20, x1: -6.2,  z1: 2.68, y0: 6.4, y1: 6.8, sag: 0.48, lanterns: 4 },
+    { x0: -3.6,  z0: -2.68, x1: -3.6,  z1: 2.68, y0: 6.8, y1: 6.8, sag: 0.42, lanterns: 4 },
+    { x0: -3.6,  z0: 2.68,  x1: 0.8,   z1: -5.20, y0: 7.2, y1: 7.6, sag: 0.55, lanterns: 0 },
+    { x0: 0.6,   z0: -5.20, x1: 1.2,   z1: 2.68, y0: 6.5, y1: 6.7, sag: 0.44, lanterns: 4 },
+    { x0: 4.4,   z0: -2.68, x1: 4.4,   z1: 2.68, y0: 6.8, y1: 6.8, sag: 0.42, lanterns: 4 },
+    { x0: 4.4,   z0: -2.68, x1: 8.8,   z1: 5.45, y0: 7.3, y1: 7.5, sag: 0.52, lanterns: 0 },
+    { x0: 8.2,   z0: -5.20, x1: 8.6,   z1: 2.68, y0: 6.6, y1: 6.8, sag: 0.44, lanterns: 4 },
+    { x0: 10.4,  z0: -2.68, x1: 10.4,  z1: 2.68, y0: 7.1, y1: 7.1, sag: 0.35, lanterns: 3 }
+  ];
+  for (const sp of crossSpans) {
+    addCatenaryWire(sp.x0, sp.y0, sp.z0, sp.x1, sp.y1, sp.z1, sp.sag, 24, sp.lanterns);
+  }
+}
+
+// ============================================================================
+// 5. ELECTRIC SCOOTERS, ARTICULATED TINY PEOPLE, ALLEY CAT & BATCH BAKING
+// ============================================================================
+const animatedActors = [];  // Articulated people, cat, idling scooter blinkers
+const blinkerMeshes = [];   // Meshes toggled for scooter hazard blinkers
+
+function createScooter({
+  x, y, z, yaw = 0, bodyHex = 0xf2f4f8, boxHex = null, lightsOn = false, hazards = false
+}) {
+  const grp = new THREE.Group();
+  grp.position.set(x, y, z);
+  grp.rotation.y = yaw;
+
+  const solid = [];
+  const emis = [];
+
+  // Front & rear chunky voxel wheels (z = +0.52 front, z = -0.48 rear)
+  for (const wz of [-0.48, 0.52]) {
+    solid.push({ x: 0, y: 0.20, z: wz, sx: 0.13, sy: 0.36, sz: 0.36, c: 0x181a20 });
+    solid.push({ x: 0, y: 0.20, z: wz, sx: 0.15, sy: 0.18, sz: 0.18, c: 0x9aa2b0 });
+  }
+  // Footboard deck, side stand & rear swingarm
+  solid.push({ x: 0, y: 0.20, z: 0.02, sx: 0.34, sy: 0.09, sz: 0.72, c: 0x232730 });
+  solid.push({ x: -0.18, y: 0.10, z: -0.05, sx: 0.04, sy: 0.20, sz: 0.04, c: 0x4b5260, rz: 0.38 });
+  // Rear body panels & cushioned dual seat
+  solid.push({ x: 0, y: 0.42, z: -0.34, sx: 0.36, sy: 0.28, sz: 0.58, c: bodyHex });
+  solid.push({ x: 0, y: 0.60, z: -0.26, sx: 0.32, sy: 0.11, sz: 0.62, c: 0x1e2028 });
+  // Angled front leg-shield fairing, mudguard & steering column
+  solid.push({ x: 0, y: 0.40, z: 0.50, sx: 0.20, sy: 0.10, sz: 0.34, c: bodyHex });
+  solid.push({ x: 0, y: 0.54, z: 0.38, sx: 0.34, sy: 0.56, sz: 0.16, c: bodyHex, rx: -0.22 });
+  solid.push({ x: 0, y: 0.86, z: 0.30, sx: 0.18, sy: 0.14, sz: 0.16, c: bodyHex });
+  // Handlebars, black grips, mirrors & tiny digital dash
+  solid.push({ x: 0, y: 0.92, z: 0.29, sx: 0.64, sy: 0.05, sz: 0.05, c: 0x2c313b });
+  solid.push({ x: -0.28, y: 0.92, z: 0.29, sx: 0.13, sy: 0.065, sz: 0.065, c: 0x14161c });
+  solid.push({ x: 0.28, y: 0.92, z: 0.29, sx: 0.13, sy: 0.065, sz: 0.065, c: 0x14161c });
+  solid.push({ x: -0.24, y: 1.04, z: 0.31, sx: 0.09, sy: 0.07, sz: 0.03, c: 0x353b47 });
+  solid.push({ x: 0.24, y: 1.04, z: 0.31, sx: 0.09, sy: 0.07, sz: 0.03, c: 0x353b47 });
+  emis.push({ x: 0, y: 0.95, z: 0.25, sx: 0.11, sy: 0.04, sz: 0.06, c: 0x39ff14, hdr: 1.5 });
+
+  // Optional iconic Shenzhen delivery thermal cube box (Meituan yellow / Ele.me blue)!
+  if (boxHex !== null) {
+    solid.push({ x: 0, y: 0.84, z: -0.52, sx: 0.46, sy: 0.44, sz: 0.44, c: boxHex });
+    solid.push({ x: 0, y: 0.86, z: -0.52, sx: 0.48, sy: 0.05, sz: 0.46, c: 0x22262e });
+  } else {
+    // Commuter rear grab rail
+    solid.push({ x: 0, y: 0.65, z: -0.60, sx: 0.28, sy: 0.05, sz: 0.12, c: 0x7c8494 });
+  }
+
+  // Headlight & brake taillight
+  if (lightsOn) {
+    emis.push({ x: 0, y: 0.72, z: 0.45, sx: 0.16, sy: 0.12, sz: 0.05, c: 0xfff1b8, hdr: 2.5 });
+    emis.push({ x: 0, y: 0.52, z: -0.64, sx: 0.16, sy: 0.08, sz: 0.04, c: 0xff2222, hdr: 2.2 });
+    const hl = addWarmLight(
+      x + Math.sin(yaw) * 0.95, y + 0.55, z + Math.cos(yaw) * 0.95,
+      0xffe9a3, 1.35, 5.2
+    );
+    flickerNeons.push({ light: hl, base: 1.35, phase: 0, subtle: true });
+  } else {
+    solid.push({ x: 0, y: 0.72, z: 0.45, sx: 0.15, sy: 0.11, sz: 0.04, c: 0xdce6f2 });
+    solid.push({ x: 0, y: 0.52, z: -0.64, sx: 0.15, sy: 0.08, sz: 0.04, c: 0x991f1f });
+  }
+
+  grp.add(buildPartMesh(solid, false, true));
+  if (emis.length > 0) grp.add(buildPartMesh(emis, true, false));
+
+  // Blinking amber hazard turn signals!
+  if (hazards) {
+    const bList = [
+      { x: -0.19, y: 0.68, z: 0.42, sx: 0.05, sy: 0.05, sz: 0.05, c: 0xff9f00, hdr: 2.5 },
+      { x: 0.19,  y: 0.68, z: 0.42, sx: 0.05, sy: 0.05, sz: 0.05, c: 0xff9f00, hdr: 2.5 },
+      { x: -0.18, y: 0.52, z: -0.63, sx: 0.05, sy: 0.05, sz: 0.05, c: 0xff9f00, hdr: 2.5 },
+      { x: 0.18,  y: 0.52, z: -0.63, sx: 0.05, sy: 0.05, sz: 0.05, c: 0xff9f00, hdr: 2.5 }
+    ];
+    const bMesh = buildPartMesh(bList, true, false);
+    grp.add(bMesh);
+    blinkerMeshes.push(bMesh);
+  }
+
+  upperWorldGroup.add(grp);
+  return grp;
+}
+
+// Expressive Articulated Voxel Miniature Person Builder!
+function createPerson({
+  x, y, z, yaw = 0, shirtHex = 0x3b8beb, pantsHex = 0x262b38, hairHex = 0x1a181c,
+  skinHex = 0xf0c29c, hat = null, apronHex = null, seated = false, prop = null,
+  role = 'idle', phase = 0, walkPath = null
+}) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = yaw;
+
+  const hipY = seated ? 0.32 : 0.46;
+
+  // Torso + optional chef/vendor apron or backpack
+  const torsoBoxes = [
+    { x: 0, y: 0.21, z: 0, sx: 0.28, sy: 0.42, sz: 0.18, c: shirtHex }
+  ];
+  if (apronHex !== null) {
+    torsoBoxes.push({ x: 0, y: 0.16, z: 0.095, sx: 0.25, sy: 0.34, sz: 0.025, c: apronHex });
+  }
+  if (prop === 'backpack') {
+    torsoBoxes.push({ x: 0, y: 0.22, z: -0.13, sx: 0.22, sy: 0.28, sz: 0.10, c: 0x2c3545 });
+  }
+  const bodyGrp = new THREE.Group();
+  bodyGrp.position.y = hipY;
+  bodyGrp.add(buildPartMesh(torsoBoxes, false, true));
+  root.add(bodyGrp);
+
+  // Head + voxel eyes + hairstyle / helmet / chef cap
+  const headBoxes = [
+    { x: 0, y: 0.14, z: 0, sx: 0.25, sy: 0.25, sz: 0.24, c: skinHex },
+    { x: -0.055, y: 0.14, z: 0.122, sx: 0.032, sy: 0.038, sz: 0.015, c: 0x16161d },
+    { x: 0.055,  y: 0.14, z: 0.122, sx: 0.032, sy: 0.038, sz: 0.015, c: 0x16161d }
+  ];
+  if (hat === 'helmet_yellow' || hat === 'helmet_blue') {
+    const hCol = hat === 'helmet_yellow' ? 0xffc300 : 0x0095ff;
+    headBoxes.push({ x: 0, y: 0.22, z: -0.01, sx: 0.29, sy: 0.16, sz: 0.29, c: hCol });
+    headBoxes.push({ x: 0, y: 0.19, z: 0.15, sx: 0.26, sy: 0.04, sz: 0.06, c: 0x1c2029 });
+  } else if (hat === 'chef') {
+    headBoxes.push({ x: 0, y: 0.30, z: 0, sx: 0.27, sy: 0.16, sz: 0.26, c: 0xf5f6fa });
+  } else {
+    // Voxel hair crown & sideburns
+    headBoxes.push({ x: 0, y: 0.24, z: -0.01, sx: 0.27, sy: 0.09, sz: 0.26, c: hairHex });
+    headBoxes.push({ x: 0, y: 0.14, z: -0.10, sx: 0.26, sy: 0.20, sz: 0.08, c: hairHex });
+  }
+  const headGrp = new THREE.Group();
+  headGrp.position.y = 0.43;
+  headGrp.add(buildPartMesh(headBoxes, false, true));
+  bodyGrp.add(headGrp);
+
+  // Left & Right Arms (pivoted at shoulders y = 0.38) + hand-held props!
+  const makeArm = (side, holdProp) => {
+    const armGrp = new THREE.Group();
+    armGrp.position.set(side * 0.19, 0.38, 0);
+    const ab = [
+      { x: 0, y: -0.13, z: 0, sx: 0.095, sy: 0.28, sz: 0.095, c: shirtHex },
+      { x: 0, y: -0.29, z: 0, sx: 0.085, sy: 0.085, sz: 0.085, c: skinHex }
+    ];
+    const eb = [];
+    if (holdProp === 'chopsticks') {
+      ab.push({ x: 0, y: -0.31, z: 0.11, sx: 0.018, sy: 0.018, sz: 0.22, c: 0xd4a96a });
+      ab.push({ x: 0.025, y: -0.30, z: 0.11, sx: 0.018, sy: 0.018, sz: 0.22, c: 0xd4a96a });
+    } else if (holdProp === 'bowl') {
+      ab.push({ x: 0.04, y: -0.28, z: 0.10, sx: 0.16, sy: 0.08, sz: 0.16, c: 0xf2efe9 });
+    } else if (holdProp === 'spatula') {
+      ab.push({ x: 0, y: -0.30, z: 0.16, sx: 0.03, sy: 0.03, sz: 0.30, c: 0x8e97a4 });
+      ab.push({ x: 0, y: -0.30, z: 0.32, sx: 0.10, sy: 0.02, sz: 0.10, c: 0xaab3c2 });
+    } else if (holdProp === 'fan') {
+      ab.push({ x: 0, y: -0.30, z: 0.14, sx: 0.18, sy: 0.02, sz: 0.20, c: 0xc99c58 });
+    } else if (holdProp === 'shaker') {
+      ab.push({ x: 0, y: -0.28, z: 0.09, sx: 0.09, sy: 0.20, sz: 0.09, c: 0xcfd6e0 });
+    } else if (holdProp === 'phone') {
+      ab.push({ x: -0.03, y: -0.28, z: 0.10, sx: 0.07, sy: 0.02, sz: 0.12, c: 0x161820, rx: -0.45 });
+      eb.push({ x: -0.03, y: -0.27, z: 0.10, sx: 0.06, sy: 0.022, sz: 0.10, c: 0x7be8ff, hdr: 1.9, rx: -0.45 });
+    } else if (holdProp === 'skewer') {
+      ab.push({ x: 0, y: -0.30, z: 0.13, sx: 0.025, sy: 0.025, sz: 0.24, c: 0xb86232 });
+    } else if (holdProp === 'bag') {
+      ab.push({ x: 0, y: -0.42, z: 0.02, sx: 0.06, sy: 0.22, sz: 0.18, c: 0xe84a5f });
+    }
+    armGrp.add(buildPartMesh(ab, false, true));
+    if (eb.length > 0) armGrp.add(buildPartMesh(eb, true, false));
+    if (holdProp === 'umbrella') {
+      // Upright post-rain stepped voxel dome umbrella held level overhead!
+      const umbGrp = new THREE.Group();
+      umbGrp.position.set(-0.08, -0.28, 0.10);
+      umbGrp.rotation.x = 0.85; // Counteracts arm forward raise so canopy sits horizontally above head!
+      umbGrp.add(buildPartMesh([
+        { x: 0, y: 0.34, z: 0, sx: 0.026, sy: 0.68, sz: 0.026, c: 0x9aa3b0 },
+        { x: 0, y: 0.72, z: 0, sx: 0.48, sy: 0.06, sz: 0.48, c: 0x38d0f2 },
+        { x: 0, y: 0.77, z: 0, sx: 0.24, sy: 0.05, sz: 0.24, c: 0x7ce8ff }
+      ], false, false));
+      const uTop = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.06, 0.78), glassMat);
+      uTop.position.set(0, 0.67, 0);
+      umbGrp.add(uTop);
+      armGrp.add(umbGrp);
+    }
+    bodyGrp.add(armGrp);
+    return armGrp;
+  };
+
+  const armL = makeArm(-1, prop === 'chopsticks' ? 'bowl' : prop === 'umbrella' ? 'bag' : null);
+  const armR = makeArm(1, prop === 'backpack' ? null : prop);
+
+  // Legs (standing or seated with bent knees!)
+  const makeLeg = (side) => {
+    const legGrp = new THREE.Group();
+    legGrp.position.set(side * 0.075, hipY, 0);
+    const lb = seated ? [
+      { x: 0, y: -0.05, z: 0.11, sx: 0.105, sy: 0.10, sz: 0.24, c: pantsHex },
+      { x: 0, y: -0.19, z: 0.20, sx: 0.10, sy: 0.24, sz: 0.10, c: pantsHex },
+      { x: 0, y: -0.29, z: 0.23, sx: 0.105, sy: 0.06, sz: 0.14, c: 0x1c1e24 }
+    ] : [
+      { x: 0, y: -0.21, z: 0, sx: 0.105, sy: 0.40, sz: 0.11, c: pantsHex },
+      { x: 0, y: -0.43, z: 0.025, sx: 0.11, sy: 0.06, sz: 0.15, c: 0x1c1e24 }
+    ];
+    legGrp.add(buildPartMesh(lb, false, true));
+    root.add(legGrp);
+    return legGrp;
+  };
+  const legL = makeLeg(-1);
+  const legR = makeLeg(1);
+
+  upperWorldGroup.add(root);
+  animatedActors.push({ root, bodyGrp, headGrp, armL, armR, legL, legR, role, phase, baseX: x, baseY: y, baseZ: z, baseYaw: yaw, walkPath });
+  return root;
+}
+
+function buildScootersCharactersAndCat() {
+  // ---- 1. SIX AUTHENTIC SHENZHEN ELECTRIC SCOOTERS ----
+  // Idling yellow Meituan-style delivery scooter in North curb lane, headlight + blinking hazards on puddle!
+  createScooter({ x: 8.35, y: 0.02, z: -1.78, yaw: 0.42, bodyHex: 0x222630, boxHex: 0xffc300, lightsOn: true, hazards: true });
+  // Blue Ele.me-style delivery scooter parked near Old Chen's stir-fry, glowing into wet asphalt!
+  createScooter({ x: -7.85, y: 0.02, z: -1.85, yaw: -0.52, bodyHex: 0xf0f4f8, boxHex: 0x0095ff, lightsOn: true, hazards: false });
+  // Scooter parked on sidewalk by Huaqiang repair shop
+  createScooter({ x: -1.35, y: 0.16, z: -3.45, yaw: 1.35, bodyHex: 0xd9383a, boxHex: null, lightsOn: false, hazards: false });
+  // Row of 3 scooters parked along South-East curb
+  createScooter({ x: 10.15, y: 0.16, z: 3.35, yaw: -2.45, bodyHex: 0x4ecdc4, boxHex: null, lightsOn: false, hazards: false });
+  createScooter({ x: 11.25, y: 0.16, z: 3.35, yaw: -2.55, bodyHex: 0x2b303c, boxHex: 0xffc300, lightsOn: false, hazards: true });
+  createScooter({ x: 12.35, y: 0.16, z: 3.35, yaw: -2.38, bodyHex: 0xe8edf2, boxHex: 0x0095ff, lightsOn: false, hazards: false });
+
+  // ---- 2. CHEFS & STALL VENDORS ----
+  // Old Chen tossing flaming stir-fry wok!
+  createPerson({ x: -11.85, y: 0.16, z: -5.32, yaw: 0, shirtHex: 0xf2f4f8, pantsHex: 0x232730, hat: 'chef', apronHex: 0xb8292f, prop: 'spatula', role: 'cook_wok', phase: 0.2 });
+  // Dim sum vendor tending bamboo steamers
+  createPerson({ x: -4.55, y: 0.16, z: -4.92, yaw: 0.1, shirtHex: 0xe8dfd1, apronHex: 0x226b58, role: 'haggle_vendor', phase: 1.4 });
+  // Shaokao BBQ vendor fanning glowing red charcoals!
+  createPerson({ x: -10.8, y: 0.16, z: 3.92, yaw: Math.PI, shirtHex: 0x2b303b, apronHex: 0x9e262b, prop: 'fan', role: 'fan_bbq', phase: 0.6 });
+  // Street Wok #2 vendor on South side
+  createPerson({ x: -4.8, y: 0.16, z: 3.95, yaw: Math.PI, shirtHex: 0xd9821e, hat: 'chef', apronHex: 0xf4f4f6, prop: 'spatula', role: 'cook_wok', phase: 2.1 });
+  // Hand-Punched Lemon Tea bartender vigorously shaking cocktail shaker!
+  createPerson({ x: 10.9, y: 0.16, z: -5.05, yaw: 0, shirtHex: 0x2ca84d, apronHex: 0x1e242b, prop: 'shaker', role: 'shake_tea', phase: 0.9 });
+
+  // ---- 3. THREE LIVELY HAGGLING SCENES ("торгуются") ----
+  // Haggling Scene A: Seafood scale (Vendor pointing at scale vs Customer gesturing back!)
+  createPerson({ x: 5.55, y: 0.16, z: -4.58, yaw: -0.25, shirtHex: 0x28648a, apronHex: 0x1a3b52, role: 'haggle_vendor', phase: 0.0 });
+  createPerson({ x: 5.25, y: 0.16, z: -3.22, yaw: Math.PI - 0.2, shirtHex: 0xe84a5f, pantsHex: 0x2e3545, prop: 'bag', role: 'haggle_buyer', phase: 0.5 });
+
+  // Haggling Scene B: Tropical Fruit Stall (Vendor & Buyer bargaining over durians!)
+  createPerson({ x: 1.15, y: 0.16, z: 4.30, yaw: Math.PI + 0.15, shirtHex: 0xd99b26, apronHex: 0x5c3d24, role: 'haggle_vendor', phase: 1.8 });
+  createPerson({ x: 1.35, y: 0.16, z: 2.38, yaw: -0.15, shirtHex: 0x4ecdc4, pantsHex: 0x222834, role: 'haggle_buyer', phase: 2.3 });
+
+  // Haggling Scene C: Shenzhen LED Phone-Case Stall (Vendor & Tech Worker with backpack!)
+  createPerson({ x: 6.45, y: 0.16, z: 4.18, yaw: Math.PI - 0.1, shirtHex: 0x7b2cbf, role: 'haggle_vendor', phase: 3.1 });
+  createPerson({ x: 6.65, y: 0.16, z: 2.42, yaw: 0.15, shirtHex: 0x3b8beb, prop: 'backpack', role: 'haggle_buyer', phase: 3.6 });
+
+  // ---- 4. TINY PEOPLE EATING AT NIGHT-MARKET TABLES ("едят") ----
+  // Table 1 & 2 at Old Chen's Stir-Fry (North sidewalk)
+  createPerson({ x: -13.28, y: 0.16, z: -3.45, yaw: Math.PI * 0.5, shirtHex: 0xf7b731, seated: true, prop: 'chopsticks', role: 'diner', phase: 0.3 });
+  createPerson({ x: -11.92, y: 0.16, z: -3.45, yaw: -Math.PI * 0.5, shirtHex: 0xeb3b5a, seated: true, prop: 'chopsticks', role: 'diner', phase: 1.7 });
+  createPerson({ x: -9.98,  y: 0.16, z: -3.50, yaw: Math.PI * 0.5, shirtHex: 0x20bf6b, seated: true, prop: 'chopsticks', role: 'diner', phase: 2.5 });
+  createPerson({ x: -8.62,  y: 0.16, z: -3.50, yaw: -Math.PI * 0.5, shirtHex: 0x4b7bec, seated: true, prop: 'chopsticks', role: 'diner', phase: 0.9 });
+
+  // Table 3 at South BBQ Skewer Stand (eating skewers!)
+  createPerson({ x: -8.28, y: 0.16, z: 3.85, yaw: Math.PI * 0.5, shirtHex: 0xf5f6fa, seated: true, prop: 'skewer', role: 'diner', phase: 1.2 });
+  createPerson({ x: -6.92, y: 0.16, z: 3.85, yaw: -Math.PI * 0.5, shirtHex: 0xfd9644, seated: true, prop: 'skewer', role: 'diner', phase: 2.8 });
+  createPerson({ x: -7.60, y: 0.16, z: 4.47, yaw: Math.PI, shirtHex: 0x3867d6, seated: true, prop: 'chopsticks', role: 'diner', phase: 0.4 });
+
+  // Rooftop Terrace Diners on South 2nd Floor Open-Air Beer Garden (Y = 3.73m)
+  createPerson({ x: -11.88, y: 3.73, z: 7.40, yaw: Math.PI * 0.5, shirtHex: 0x26de81, seated: true, prop: 'skewer', role: 'diner', phase: 0.7 });
+  createPerson({ x: -10.52, y: 3.73, z: 7.40, yaw: -Math.PI * 0.5, shirtHex: 0xfed330, seated: true, prop: 'chopsticks', role: 'diner', phase: 2.2 });
+  createPerson({ x: -4.48,  y: 3.73, z: 7.20, yaw: Math.PI * 0.5, shirtHex: 0xff6b81, seated: true, prop: 'chopsticks', role: 'diner', phase: 1.5 });
+  createPerson({ x: -3.12,  y: 3.73, z: 7.20, yaw: -Math.PI * 0.5, shirtHex: 0x70a1ff, seated: true, prop: 'skewer', role: 'diner', phase: 3.0 });
+  createPerson({ x: 10.52,  y: 3.73, z: 7.40, yaw: Math.PI * 0.5, shirtHex: 0xff7f50, seated: true, prop: 'chopsticks', role: 'diner', phase: 1.9 });
+
+  // ---- 5. DELIVERY RIDER, STROLLING PEDESTRIANS & UPPER BALCONY LIFE ----
+  // Delivery rider in yellow helmet checking glowing phone next to blinking scooter!
+  createPerson({ x: 9.25, y: 0.16, z: -2.85, yaw: -0.45, shirtHex: 0xffc300, pantsHex: 0x1e222b, hat: 'helmet_yellow', prop: 'phone', role: 'rider_phone', phase: 0.4 });
+
+  // Strolling pedestrians on seamless 30s closed sidewalk/curb loops (kept outside central camera flight path!)
+  createPerson({
+    x: -3.0, y: 0.02, z: -1.65, yaw: Math.PI * 0.5, shirtHex: 0xa55eea, pantsHex: 0x222630, prop: 'umbrella', role: 'walker', phase: 0.0,
+    walkPath: { xA: -6.2, xB: 3.8, zA: -1.68, zB: -1.52, y: 0.02 }
+  });
+  createPerson({
+    x: 2.0, y: 0.02, z: 1.68, yaw: -Math.PI * 0.5, shirtHex: 0x2bcbba, pantsHex: 0x2c303a, prop: 'phone', role: 'walker', phase: 0.5,
+    walkPath: { xA: -2.2, xB: 8.2, zA: 1.62, zB: 1.75, y: 0.02 }
+  });
+
+  // 2nd-floor resident watching market from North building window/balcony + Voxel Alley Cat on awning!
+  const catGrp = new THREE.Group();
+  catGrp.position.set(-5.85, 2.74, -3.55);
+  catGrp.rotation.y = 0.45;
+  catGrp.add(buildPartMesh([
+    { x: 0, y: 0.08, z: 0, sx: 0.14, sy: 0.14, sz: 0.24, c: 0xf39c12 }, // orange tabby body
+    { x: 0, y: 0.18, z: 0.11, sx: 0.13, sy: 0.12, sz: 0.12, c: 0xf39c12 }, // head
+    { x: -0.045, y: 0.26, z: 0.11, sx: 0.035, sy: 0.045, sz: 0.03, c: 0xd35400 }, // ear L
+    { x: 0.045,  y: 0.26, z: 0.11, sx: 0.035, sy: 0.045, sz: 0.03, c: 0xd35400 }  // ear R
+  ], false, true));
+  const catTail = new THREE.Group();
+  catTail.position.set(0, 0.11, -0.12);
+  catTail.add(buildPartMesh([{ x: 0, y: 0.07, z: -0.06, sx: 0.035, sy: 0.16, sz: 0.035, c: 0xe67e22, rx: -0.5 }], false, false));
+  catGrp.add(catTail);
+  upperWorldGroup.add(catGrp);
+  animatedActors.push({ root: catGrp, catTail, role: 'cat', phase: 0.7 });
+}
+
+// Bake all static voxel batches into GPU InstancedMeshes with Neighbor Ambient Occlusion!
+let wetInstancedMesh = null;
+
+function computeVoxelAO(ix, iy, iz) {
+  let neighbors = 0;
+  // Check upper & horizontal adjacent structural voxels for crease/corner darkening
+  if (occSet.has(occKey(ix + 1, iy + 1, iz))) neighbors++;
+  if (occSet.has(occKey(ix - 1, iy + 1, iz))) neighbors++;
+  if (occSet.has(occKey(ix, iy + 1, iz + 1))) neighbors++;
+  if (occSet.has(occKey(ix, iy + 1, iz - 1))) neighbors++;
+  if (occSet.has(occKey(ix + 1, iy, iz + 1))) neighbors += 0.6;
+  if (occSet.has(occKey(ix - 1, iy, iz - 1))) neighbors += 0.6;
+  return Math.max(0.66, 1.0 - neighbors * 0.075);
+}
+
+function bakeBatch(list, mat, parentGroup, castShad, recvShad) {
+  if (list.length === 0) return null;
+  const im = new THREE.InstancedMesh(unitBoxGeo, mat, list.length);
+  im.castShadow = castShad;
+  im.receiveShadow = recvShad;
+  for (let i = 0; i < list.length; i++) {
+    const r = list[i];
+    _tmpPos.set(r.x, r.y, r.z);
+    _tmpScale.set(r.sx, r.sy, r.sz);
+    if (r.rotX || r.rotY || r.rotZ) {
+      _tmpEuler.set(r.rotX || 0, r.rotY || 0, r.rotZ || 0);
+      _tmpQuat.setFromEuler(_tmpEuler);
+    } else {
+      _tmpQuat.identity();
+    }
+    _tmpMat4.compose(_tmpPos, _tmpQuat, _tmpScale);
+    im.setMatrixAt(i, _tmpMat4);
+
+    _tmpColor.set(r.c);
+    const ao = r.aoChecked ? computeVoxelAO(r.ix, r.iy, r.iz) : 1.0;
+    const m = (r.hdrMult || 1.0) * ao;
+    _tmpColor.multiplyScalar(m);
+    im.setColorAt(i, _tmpColor);
+  }
+  im.instanceMatrix.needsUpdate = true;
+  if (im.instanceColor) im.instanceColor.needsUpdate = true;
+  parentGroup.add(im);
+  return im;
+}
+
+// Execute complete world construction & bake!
+buildPlinthAndStreet();
+buildWestArchway();
+buildBuildingsStallsAndWires();
+buildScootersCharactersAndCat();
+
+bakeBatch(batches.rough, roughMat, upperWorldGroup, true, true);
+bakeBatch(batches.metal, metalMat, upperWorldGroup, true, true);
+wetInstancedMesh = bakeBatch(batches.wet, wetGroundMaterial, scene, false, true);
+bakeBatch(batches.emissive, emissiveMat, upperWorldGroup, false, false);
+bakeBatch(batches.glass, glassMat, upperWorldGroup, false, false);
+bakeBatch(batches.plinthRough, roughMat, plinthGroup, true, true);
+bakeBatch(batches.plinthMetal, metalMat, plinthGroup, false, true);
+
+// ============================================================================
+// 6. POST-RAIN PARTICLES (STEAM, FLAMES, DRIPS), 30s CAMERA LOOP & FREE CAM (C)
+// ============================================================================
+
+// A. Billowing Voxel Steam over Woks, Bamboo Steamers, BBQ & Manhole
+const STEAM_COUNT = 260;
+const steamMat = new THREE.MeshStandardMaterial({
+  color: 0xf2f6ff,
+  emissive: 0x302822,
+  roughness: 0.92,
+  metalness: 0.0,
+  transparent: true,
+  opacity: 0.42,
+  depthWrite: false
+});
+const steamMesh = new THREE.InstancedMesh(unitBoxGeo, steamMat, STEAM_COUNT);
+upperWorldGroup.add(steamMesh);
+
+const steamParticles = Array.from({ length: STEAM_COUNT }, (_, i) => {
+  const src = steamSources[i % steamSources.length];
+  return {
+    src,
+    offset: (i / STEAM_COUNT) + rng() * 0.37,
+    angle: rng() * Math.PI * 2,
+    rad: rng() * src.spread,
+    driftX: randRange(-0.22, 0.22),
+    driftZ: randRange(-0.22, 0.22),
+    spin: randRange(-1.5, 1.5)
+  };
+});
+
+// B. Leaping Voxel Wok Flames & Charcoal BBQ Sparks
+const FIRE_COUNT = 96;
+const fireMesh = new THREE.InstancedMesh(unitBoxGeo, emissiveMat, FIRE_COUNT);
+upperWorldGroup.add(fireMesh);
+
+const fireParticles = Array.from({ length: FIRE_COUNT }, (_, i) => {
+  const src = fireSources[i % fireSources.length];
+  return {
+    src,
+    seed: rng() * 100,
+    ox: (rng() - 0.5) * src.w,
+    oz: (rng() - 0.5) * src.d
+  };
+});
+
+// C. Post-Rain Falling Water Droplets (spawning real shader ripples on impact!)
+const DROP_COUNT = Math.max(12, dripSources.length * 2);
+const dropMat = new THREE.MeshBasicMaterial({ color: 0x9be8ff, transparent: true, opacity: 0.78 });
+const dropMesh = new THREE.InstancedMesh(unitBoxGeo, dropMat, DROP_COUNT);
+upperWorldGroup.add(dropMesh);
+
+let rippleCursor = 0;
+const dropParticles = Array.from({ length: DROP_COUNT }, (_, i) => {
+  const src = dripSources[i % dripSources.length];
+  return {
+    src,
+    t: rng() * 2.4,
+    period: randRange(1.5, 2.9),
+    landed: false
+  };
+});
+
+function updateParticles(elapsed, dt) {
+  // 1. Steam cubes rising, swirling, expanding & dissipating
+  for (let i = 0; i < STEAM_COUNT; i++) {
+    const p = steamParticles[i];
+    const life = (elapsed * p.src.speed * 0.48 + p.offset) % 1.0;
+    const rise = life * 1.95 * p.src.scale;
+    const swirl = Math.sin(elapsed * 1.8 + p.offset * 12.0) * 0.12 * life;
+    const px = p.src.x + Math.cos(p.angle) * p.rad * (1 + life * 0.9) + p.driftX * life + swirl;
+    const py = p.src.y + rise;
+    const pz = p.src.z + Math.sin(p.angle) * p.rad * (1 + life * 0.9) + p.driftZ * life;
+    const env = Math.sin(life * Math.PI); // smooth 0 -> 1 -> 0 envelope
+    const sz = (0.07 + life * 0.21) * p.src.scale * Math.max(0.001, env);
+
+    _tmpPos.set(px, py, pz);
+    _tmpEuler.set(life * p.spin, elapsed * 0.6 + p.offset, life * 0.8);
+    _tmpQuat.setFromEuler(_tmpEuler);
+    _tmpScale.set(sz, sz * 0.88, sz);
+    _tmpMat4.compose(_tmpPos, _tmpQuat, _tmpScale);
+    steamMesh.setMatrixAt(i, _tmpMat4);
+
+    // Warm orange glow near hot wok/steamer base fading to cool night mist aloft
+    _tmpColor.setRGB(
+      THREE.MathUtils.lerp(1.05, 0.78, life),
+      THREE.MathUtils.lerp(0.92, 0.86, life),
+      THREE.MathUtils.lerp(0.82, 0.98, life)
+    );
+    steamMesh.setColorAt(i, _tmpColor);
+  }
+  steamMesh.instanceMatrix.needsUpdate = true;
+  if (steamMesh.instanceColor) steamMesh.instanceColor.needsUpdate = true;
+
+  // 2. Wok flames & BBQ charcoal sparks
+  for (let i = 0; i < FIRE_COUNT; i++) {
+    const fp = fireParticles[i];
+    const isWok = fp.src.kind === 'wok';
+    const cycle = (elapsed * (isWok ? 3.8 : 1.9) + fp.seed) % 1.0;
+    const env = Math.sin(cycle * Math.PI);
+    const fx = fp.src.x + fp.ox + Math.sin(elapsed * 9.0 + fp.seed) * (isWok ? 0.05 : 0.02);
+    const fy = fp.src.y + cycle * (isWok ? 0.34 : 0.62);
+    const fz = fp.src.z + fp.oz + Math.cos(elapsed * 8.0 + fp.seed) * 0.04;
+    const s = isWok ? (0.045 + env * 0.065) : (0.022 * env);
+
+    _tmpPos.set(fx, fy, fz);
+    _tmpQuat.identity();
+    _tmpScale.set(s, s * (isWok ? 1.5 : 1.0), s);
+    _tmpMat4.compose(_tmpPos, _tmpQuat, _tmpScale);
+    fireMesh.setMatrixAt(i, _tmpMat4);
+
+    const hot = 1.0 - cycle;
+    _tmpColor.setRGB(2.4, 0.55 + hot * 1.35, 0.08 + hot * 0.25);
+    fireMesh.setColorAt(i, _tmpColor);
+  }
+  fireMesh.instanceMatrix.needsUpdate = true;
+  if (fireMesh.instanceColor) fireMesh.instanceColor.needsUpdate = true;
+
+  // 3. Falling post-rain droplets & puddle ripple spawning
+  for (let i = 0; i < DROP_COUNT; i++) {
+    const dp = dropParticles[i];
+    dp.t += dt;
+    if (dp.t >= dp.period) {
+      dp.t -= dp.period;
+      dp.landed = false;
+    }
+    if (dp.t < 0.85) {
+      const fallTime = dp.t;
+      const dy = dp.src.y - 0.5 * 9.2 * fallTime * fallTime;
+      const groundY = Math.abs(dp.src.z) < 2.48 ? 0.02 : 0.16;
+      if (dy <= groundY) {
+        if (!dp.landed) {
+          dp.landed = true;
+          rippleData[rippleCursor].set(dp.src.x, dp.src.z, elapsed, 1.0);
+          rippleCursor = (rippleCursor + 1) % MAX_RIPPLES;
+        }
+        _tmpScale.set(0.0001, 0.0001, 0.0001);
+        _tmpPos.set(dp.src.x, -10, dp.src.z);
+      } else {
+        _tmpPos.set(dp.src.x, dy, dp.src.z);
+        _tmpScale.set(0.022, 0.095, 0.022);
+      }
+    } else {
+      _tmpPos.set(dp.src.x, -10, dp.src.z);
+      _tmpScale.set(0.0001, 0.0001, 0.0001);
+    }
+    _tmpQuat.identity();
+    _tmpMat4.compose(_tmpPos, _tmpQuat, _tmpScale);
+    dropMesh.setMatrixAt(i, _tmpMat4);
+  }
+  dropMesh.instanceMatrix.needsUpdate = true;
+}
+
+// Periodic world animations (synchronized cleanly with 30.0s harmonics!)
+const LOOP_DURATION = 30.0;
+const OM = (Math.PI * 2) / LOOP_DURATION; // Fundamental angular frequency (rad/s)
+
+function updateActorsAndLights(elapsed) {
+  // Swaying red lanterns
+  for (const sl of swayingLanterns) {
+    sl.mesh.rotation.z = Math.sin(elapsed * OM * 8 + sl.phase) * 0.075;
+    sl.mesh.rotation.x = Math.cos(elapsed * OM * 6 + sl.phase) * 0.045;
+  }
+
+  // Scooter amber hazard blinkers (30 cycles per 30s = 1 Hz!)
+  const blinkOn = Math.sin(elapsed * OM * 30) > 0.0;
+  for (const bm of blinkerMeshes) bm.visible = blinkOn;
+
+  // Subtle neon sign shimmer & occasional vintage buzz on 1 sign
+  for (let i = 0; i < flickerNeons.length; i++) {
+    const fn = flickerNeons[i];
+    if (fn.subtle) {
+      fn.light.intensity = fn.base * (0.95 + 0.05 * Math.sin(elapsed * OM * 18 + fn.phase));
+    } else {
+      const glitch = Math.sin(elapsed * OM * 45 + fn.phase) * Math.sin(elapsed * OM * 93);
+      fn.light.intensity = glitch > 0.82 ? fn.base * 0.45 : fn.base;
+    }
+  }
+
+  // Articulated miniature characters & cat!
+  for (const a of animatedActors) {
+    const p = a.phase;
+    if (a.role === 'cat') {
+      a.catTail.rotation.z = Math.sin(elapsed * OM * 16 + p) * 0.42;
+      continue;
+    }
+    if (a.role === 'cook_wok') {
+      a.armR.rotation.x = -0.85 + Math.sin(elapsed * OM * 36 + p) * 0.48;
+      a.armL.rotation.x = -0.55 + Math.cos(elapsed * OM * 36 + p) * 0.25;
+      a.bodyGrp.rotation.x = 0.10 + Math.sin(elapsed * OM * 18 + p) * 0.06;
+      a.headGrp.rotation.y = Math.sin(elapsed * OM * 9 + p) * 0.18;
+    } else if (a.role === 'fan_bbq') {
+      a.armR.rotation.x = -0.75 + Math.sin(elapsed * OM * 42 + p) * 0.52;
+      a.armR.rotation.z = Math.cos(elapsed * OM * 42 + p) * 0.20;
+      a.headGrp.rotation.y = Math.sin(elapsed * OM * 8 + p) * 0.22;
+    } else if (a.role === 'shake_tea') {
+      a.armR.rotation.x = -1.25 + Math.sin(elapsed * OM * 48 + p) * 0.45;
+      a.bodyGrp.rotation.z = Math.sin(elapsed * OM * 24 + p) * 0.05;
+    } else if (a.role === 'diner') {
+      const eatWave = Math.max(0, Math.sin(elapsed * OM * 12 + p));
+      a.armR.rotation.x = -0.55 - eatWave * 0.82;
+      a.armL.rotation.x = -0.62;
+      a.headGrp.rotation.x = eatWave * 0.24;
+      a.headGrp.rotation.y = Math.sin(elapsed * OM * 6 + p * 1.7) * 0.24 * (1 - eatWave);
+    } else if (a.role === 'haggle_vendor' || a.role === 'haggle_buyer') {
+      const talk = Math.sin(elapsed * OM * 18 + p);
+      a.armR.rotation.x = -0.45 + talk * 0.55;
+      a.armL.rotation.x = -0.20 - talk * 0.28;
+      a.bodyGrp.rotation.y = Math.sin(elapsed * OM * 9 + p) * 0.14;
+      a.headGrp.rotation.y = Math.cos(elapsed * OM * 12 + p) * 0.22;
+      a.headGrp.rotation.x = Math.sin(elapsed * OM * 18 + p) * 0.10;
+    } else if (a.role === 'rider_phone') {
+      a.armR.rotation.x = -0.95 + Math.sin(elapsed * OM * 8 + p) * 0.06;
+      a.headGrp.rotation.x = 0.28;
+      a.headGrp.rotation.y = Math.sin(elapsed * OM * 6 + p) * 0.25;
+    } else if (a.role === 'walker' && a.walkPath) {
+      // Smooth periodic promenade along curb (1 full round-trip per 30.0s!)
+      const theta = elapsed * OM + p * Math.PI * 2;
+      const u = 0.5 - 0.5 * Math.cos(theta);
+      const vel = Math.sin(theta);
+      a.root.position.x = THREE.MathUtils.lerp(a.walkPath.xA, a.walkPath.xB, u);
+      a.root.position.z = THREE.MathUtils.lerp(a.walkPath.zA, a.walkPath.zB, 0.5 + 0.5 * Math.sin(theta));
+      a.root.position.y = a.walkPath.y + Math.abs(Math.sin(elapsed * OM * 32)) * 0.025;
+      a.root.rotation.y = vel >= 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
+      const stride = Math.sin(elapsed * OM * 32) * Math.min(1, Math.abs(vel) * 3.5);
+      a.legL.rotation.x = stride * 0.52;
+      a.legR.rotation.x = -stride * 0.52;
+      a.armL.rotation.x = -stride * 0.35;
+      a.armR.rotation.x = a.walkPath.y < 0.1 && p < 0.2 ? -0.85 : -0.55; // holding umbrella or phone!
+    }
+  }
+}
+
+// ============================================================================
+// 7. SEAMLESS 30-SECOND CAMERA CHOREOGRAPHY & 'C' KEY FREE-CAMERA TOGGLE
+// ============================================================================
+const camWaypoints = [
+  new THREE.Vector3(-21.2, 11.4, 16.2), // 0.0s: Unobstructed Hero 3/4 Competition Diorama Reveal
+  new THREE.Vector3(-17.6,  3.6,  1.15),// 3.0s: Aligned approach toward glowing 深圳夜市 Archway
+  new THREE.Vector3(-11.8,  1.62, 0.45),// 6.0s: Entering under archway past flaming woks & BBQ
+  new THREE.Vector3( -6.2,  1.48,-0.35),// 9.0s: Intimate pass by stir-fry diners & dim sum steam
+  new THREE.Vector3(  0.0,  1.52, 0.45),// 12.0s: Mid-alley puddles, seafood tanks & haggling
+  new THREE.Vector3(  5.6,  1.44,-0.28),// 15.0s: Low puddle reflection of blinking scooter & Lemon Tea
+  new THREE.Vector3( 11.2,  2.15, 0.05),// 18.0s: Turning on open East street centerline — full canyon vista!
+  new THREE.Vector3( 17.6,  5.8,  1.60),// 21.0s: Exiting cleanly out East street portal & rising
+  new THREE.Vector3( 11.8, 10.6, 16.8), // 24.0s: High aerial over lit rooftop beer garden & lantern web
+  new THREE.Vector3( -5.8, 12.0, 18.8)  // 27.0s: Panoramic front cutaway plinth arc -> 30.0s!
+];
+
+const lookWaypoints = [
+  new THREE.Vector3( -0.8,  2.4, -1.2), // 0.0s: Center of glowing market canyon
+  new THREE.Vector3( -4.5,  2.2, -0.4), // 3.0s: Framing the 深圳夜市 archway & alley depth
+  new THREE.Vector3( -3.5,  1.55,-1.4), // 6.0s: Looking across Old Chen's wok steam & diners
+  new THREE.Vector3( -0.5,  1.60,-1.8), // 9.0s: Looking toward bamboo steamers & neon signs
+  new THREE.Vector3(  5.4,  1.50,-2.2), // 12.0s: Looking at lively seafood haggling & blue tanks
+  new THREE.Vector3( 10.2,  1.38,-1.8), // 15.0s: Looking at yellow delivery scooter & Lemon Tea bar
+  new THREE.Vector3( -3.5,  2.55,-0.4), // 18.0s: Gazing all the way back down the wet neon canyon!
+  new THREE.Vector3(  0.5,  3.0, -1.2), // 21.0s: Framing the canyon & swaying lanterns from East
+  new THREE.Vector3( -0.5,  2.6, -1.4), // 24.0s: Overlooking rooftop terrace diners & handshake facades
+  new THREE.Vector3( -0.8,  2.5, -1.2)  // 27.0s: Returning smoothly to hero center target
+];
+
+const camPosCurve = new THREE.CatmullRomCurve3(camWaypoints, true, 'centripetal', 0.5);
+const camLookCurve = new THREE.CatmullRomCurve3(lookWaypoints, true, 'centripetal', 0.5);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.065;
+controls.maxDistance = 65;
+controls.minDistance = 0.8;
+controls.enabled = false;
+
+let isFreeCam = false;
+let tourTime = 0.0;
+let returnBlend = 0.0; // Smooth 0 -> 1 blend when returning from free-cam to loop
+const savedFreePos = new THREE.Vector3();
+const savedFreeLook = new THREE.Vector3();
+const keysDown = new Set();
+
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyC' || e.key === 'c' || e.key === 'C' || e.key === 'с' || e.key === 'С') {
+    if (!e.repeat) {
+      isFreeCam = !isFreeCam;
+      if (isFreeCam) {
+        const u = (tourTime % LOOP_DURATION) / LOOP_DURATION;
+        controls.target.copy(camLookCurve.getPointAt(u));
+        controls.enabled = true;
+        controls.update();
+        document.body.style.cursor = 'grab';
+      } else {
+        controls.enabled = false;
+        savedFreePos.copy(camera.position);
+        savedFreeLook.copy(controls.target);
+        returnBlend = 1.0;
+        keysDown.clear();
+        document.body.style.cursor = 'default';
+      }
+    }
+    return;
+  }
+  if (isFreeCam) keysDown.add(e.code);
+});
+
+window.addEventListener('keyup', (e) => {
+  keysDown.delete(e.code);
+});
+
+const _fwd = new THREE.Vector3();
+const _right = new THREE.Vector3();
+const _move = new THREE.Vector3();
+const _curPos = new THREE.Vector3();
+const _curLook = new THREE.Vector3();
+
+function updateCamera(dt) {
+  if (isFreeCam) {
+    // Support WASD / Arrow / QE free flight alongside mouse OrbitControls!
+    _move.set(0, 0, 0);
+    camera.getWorldDirection(_fwd);
+    _right.crossVectors(_fwd, camera.up).normalize();
+    if (keysDown.has('KeyW') || keysDown.has('ArrowUp')) _move.add(_fwd);
+    if (keysDown.has('KeyS') || keysDown.has('ArrowDown')) _move.sub(_fwd);
+    if (keysDown.has('KeyD') || keysDown.has('ArrowRight')) _move.add(_right);
+    if (keysDown.has('KeyA') || keysDown.has('ArrowLeft')) _move.sub(_right);
+    if (keysDown.has('KeyE') || keysDown.has('Space')) _move.y += 1;
+    if (keysDown.has('KeyQ') || keysDown.has('ShiftLeft')) _move.y -= 1;
+    if (_move.lengthSq() > 0) {
+      _move.normalize().multiplyScalar(dt * 8.5);
+      camera.position.add(_move);
+      controls.target.add(_move);
+    }
+    controls.update();
+  } else {
+    tourTime = (tourTime + dt) % LOOP_DURATION;
+    const u = tourTime / LOOP_DURATION;
+    camPosCurve.getPointAt(u, _curPos);
+    camLookCurve.getPointAt(u, _curLook);
+
+    if (returnBlend > 0.001) {
+      returnBlend = Math.max(0, returnBlend - dt * 1.6);
+      const s = returnBlend * returnBlend * (3 - 2 * returnBlend);
+      camera.position.lerpVectors(_curPos, savedFreePos, s);
+      _curLook.lerp(savedFreeLook, s);
+    } else {
+      camera.position.copy(_curPos);
+    }
+    camera.lookAt(_curLook);
+  }
+}
+
+// Render real-time mirrored planar reflection into reflRT for wet puddles & asphalt
+const _camDir = new THREE.Vector3();
+function renderPlanarReflection() {
+  if (camera.position.y <= REFL_PLANE_Y + 0.05) return;
+
+  plinthGroup.visible = false;
+  if (wetInstancedMesh) wetInstancedMesh.visible = false;
+
+  reflCamera.fov = camera.fov;
+  reflCamera.aspect = camera.aspect;
+  reflCamera.updateProjectionMatrix();
+
+  reflCamera.position.set(
+    camera.position.x,
+    2.0 * REFL_PLANE_Y - camera.position.y,
+    camera.position.z
+  );
+  camera.getWorldDirection(_camDir);
+  const tx = camera.position.x + _camDir.x * 10.0;
+  const ty = camera.position.y + _camDir.y * 10.0;
+  const tz = camera.position.z + _camDir.z * 10.0;
+  reflCamera.up.set(0, 1, 0);
+  reflCamera.lookAt(tx, 2.0 * REFL_PLANE_Y - ty, tz);
+  reflCamera.updateMatrixWorld();
+
+  reflMatrix.copy(reflBiasMatrix)
+    .multiply(reflCamera.projectionMatrix)
+    .multiply(reflCamera.matrixWorldInverse);
+
+  const prevTarget = renderer.getRenderTarget();
+  const prevToneMapping = renderer.toneMapping;
+  renderer.toneMapping = THREE.NoToneMapping;
+  renderer.setRenderTarget(reflRT);
+  renderer.clear();
+  renderer.render(scene, reflCamera);
+  renderer.toneMapping = prevToneMapping;
+  renderer.setRenderTarget(prevTarget);
+
+  plinthGroup.visible = true;
+  if (wetInstancedMesh) wetInstancedMesh.visible = true;
+}
+
+window.addEventListener('resize', () => {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  composer.setSize(w, h);
+  bloomPass.setSize(w, h);
+  reflRT.setSize(Math.max(512, Math.floor(w * 0.65)), Math.max(512, Math.floor(h * 0.65)));
+});
+
+// Initialize camera immediately at t = 0 frame so first paint is instant
+updateCamera(0);
+
+let lastTime = performance.now();
+let worldClock = 0.0;
+
+function animate(now) {
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, Math.max(0.0001, (now - lastTime) * 0.001));
+  lastTime = now;
+  worldClock += dt;
+
+  wetUniforms.uTime.value = worldClock;
+  updateActorsAndLights(worldClock);
+  updateParticles(worldClock, dt);
+  updateCamera(dt);
+  renderPlanarReflection();
+  composer.render();
+}
+
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
