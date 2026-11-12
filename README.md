@@ -3,7 +3,7 @@
 Two top models, the same short prompts, one prompt per test, no fixes. Each model runs in its own native harness and writes, runs and checks its own work. Final score **2 : 1 for Carbon** (race and diorama to Carbon, the intro to Fable).
 
 **▶ Play in your browser:** https://kostikoneuro.github.io/gemini-carbon-vs-fable-5-2/ (English / [русский](https://kostikoneuro.github.io/gemini-carbon-vs-fable-5-2/?lang=ru))
-**🎬 Video (Russian):** coming soon
+**🎬 Video (Russian):** https://youtu.be/mqdWH0Fjjeo
 **💬 Telegram:** https://t.me/kostik_neuro
 
 > Русский: страница на русском: https://kostikoneuro.github.io/gemini-carbon-vs-fable-5-2/?lang=ru. Все игры и диорамы открываются прямо в браузере, в каждой есть кнопка «← Ко всем тестам». Промпты в папке [`prompts/`](prompts/).
