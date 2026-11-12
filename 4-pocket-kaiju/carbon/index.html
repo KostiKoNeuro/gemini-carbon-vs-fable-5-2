@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POCKET KAIJU — Bio-Atomic Urban Destruction</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/build/three.module.min.js",
+        "three/addons/": "./vendor/three/addons/"
+      }
+    }
+  </script>
+</head>
+<body>
+<style>#kk-back{position:fixed;top:6px;left:6px;z-index:2147483647;display:inline-flex;align-items:center;height:26px;padding:0 8px;font:700 12px/1 system-ui,-apple-system,"Segoe UI",sans-serif;color:#101434;background:#FFD400;border:2px solid #101434;border-radius:999px;box-shadow:2px 2px 0 #101434;text-decoration:none;white-space:nowrap;opacity:.85;pointer-events:auto;user-select:none;-webkit-user-select:none}#kk-back span{display:inline-block;overflow:hidden;max-width:140px;margin-left:5px;animation:kkb .4s ease 4s forwards}#kk-back:hover,#kk-back:focus-visible{opacity:1}#kk-back:hover span,#kk-back:focus-visible span{animation:none;max-width:140px;margin-left:5px}@keyframes kkb{to{max-width:0;margin-left:0}}</style><a id="kk-back" href="../" title="All tests / Все тесты" aria-label="All tests">&larr;<span>All tests</span></a><script>(function(){try{if(localStorage.getItem("kk-lang")==="ru"){var a=document.getElementById("kk-back");a.lastChild.textContent="Ко всем тестам";a.setAttribute("aria-label","Ко всем тестам")}}catch(e){}})()</script>
+
+  <!-- Live 3D WebGL Viewport -->
+  <div id="canvas-container"></div>
+
+  <!-- Screen-projected 3D Floating Damage & Score Popups -->
+  <div id="floating-popups" aria-hidden="true"></div>
+
+  <!-- 1. LOADING SCREEN -->
+  <section id="loading-screen" class="overlay-screen">
+    <div class="loading-box">
+      <div class="loading-emblem">☢️ MONARCH-OMEGA CONTAINMENT BREACH</div>
+      <h1 class="game-logo">POCKET <span>KAIJU</span></h1>
+      <p class="loading-sub">START POCKET-SIZED • DEVOUR BLOCKS • TOWER OVER SKYSCRAPERS</p>
+      <div class="loading-bar-track">
+        <div id="loading-bar-fill" class="loading-bar-fill"></div>
+      </div>
+      <div id="loading-status" class="loading-status">Initializing 3D Engine...</div>
+    </div>
+  </section>
+
+  <!-- 2. MAIN MENU (Over Live 3D City & Roaring Kaiju Diorama) -->
+  <section id="menu-screen" class="hidden">
+    <header class="menu-topbar">
+      <div class="topbar-brand">
+        <span class="rad-dot"></span>
+        <span>BIO-ATOMIC SIMULATOR v1.0</span>
+      </div>
+      <div class="topbar-pills">
+        <div id="menu-kaiju-chip" class="status-pill">REX-84 • Atomic Tyrant</div>
+        <div class="status-pill dna-pill">🧬 <strong id="menu-dna-val">80</strong> DNA</div>
+        <div class="status-pill">🏆 <strong id="menu-ach-chip">0 / 12</strong></div>
+      </div>
+    </header>
+
+    <div class="menu-main-layout">
+      <div class="menu-left-panel">
+        <div class="title-block">
+          <div class="kicker-tag">URBAN EXTINCTION PROTOCOL</div>
+          <h1 class="hero-title">POCKET<br /><span>KAIJU</span></h1>
+          <p class="hero-tagline">
+            Smash real 3D skyscrapers into tumbling rubble, hurl rush-hour traffic at attack helicopters, and grow from a 7m hatchling into a 40m planetary calamity!
+          </p>
+        </div>
+
+        <nav class="menu-nav">
+          <button id="btn-quick-play" class="menu-cta-primary" type="button">
+            <span class="cta-main">▶ DEPLOY RAMPAGE</span>
+            <span id="quick-play-sub" class="cta-sub">OP-01: SUNNYVALE OUTSKIRTS</span>
+          </button>
+          <button id="btn-play" class="menu-btn" type="button">🗺️ OPERATIONS &amp; BOSS SELECT</button>
+          <button id="btn-roster" class="menu-btn" type="button">🦖 KAIJU ROSTER (3 TITANS)</button>
+          <button id="btn-lab" class="menu-btn" type="button">🧬 EVOLUTION LAB UPGRADES</button>
+          <div class="menu-btn-row">
+            <button id="btn-achievements" class="menu-btn-half" type="button">🏆 ACHIEVEMENTS</button>
+            <button id="btn-settings" class="menu-btn-half" type="button">⚙️ SETTINGS</button>
+            <button id="btn-credits" class="menu-btn-half" type="button">📜 CREDITS</button>
+          </div>
+        </nav>
+      </div>
+
+      <aside class="menu-controls-card">
+        <h4>TACTICAL KAIJU CONTROLS</h4>
+        <div class="ctrl-line"><kbd>WASD</kbd> / <kbd>Arrows</kbd> <span>March &amp; Trample Smaller Blocks</span></div>
+        <div class="ctrl-line"><kbd>LMB</kbd> / <kbd>SPACE</kbd> <span>Primary Tectonic Smash</span></div>
+        <div class="ctrl-line"><kbd>RMB</kbd> / <kbd>E</kbd> <span>Atomic Breath / Boulder / Volley</span></div>
+        <div class="ctrl-line"><kbd>SHIFT</kbd> <span>Seismic Crater Leap-Slam</span></div>
+        <div class="ctrl-line"><kbd>F</kbd> <span>Kick Car / Truck as Bomb</span></div>
+        <div class="ctrl-line"><kbd>R</kbd> <span>Unleash Cataclysm Ultimate</span></div>
+        <div class="ctrl-line"><kbd>Q / C</kbd> + <kbd>Wheel</kbd> <span>Orbit &amp; Zoom Camera</span></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 3. REUSABLE MODAL (Operations / Roster / Evolution Lab / Achievements / Settings / Credits) -->
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal-window">
+      <header class="modal-header">
+        <h2 id="modal-title">OPERATIONS</h2>
+        <div class="modal-header-right">
+          <span id="modal-dna-badge" class="modal-dna">🧬 80 DNA</span>
+          <button id="btn-modal-close" class="btn-close" type="button" aria-label="Close">✕ ESC</button>
+        </div>
+      </header>
+      <div id="modal-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- 4. IN-GAME HUD -->
+  <section id="hud-screen" class="hidden">
+    <div class="hud-top-row">
+      <!-- Top-Left: Kaiju Vitals, Live Meter Height & Growth -->
+      <div class="hud-panel hud-vitals">
+        <div class="vitals-header">
+          <div>
+            <div id="hud-kaiju-name" class="kaiju-hud-name">REX-84</div>
+            <div id="hud-size-badge" class="size-class-badge">CLASS I • POCKET HATCHLING</div>
+          </div>
+          <div class="height-readout">
+            <span class="height-lbl">HEIGHT</span>
+            <strong id="hud-height-val">7.4m</strong>
+          </div>
+        </div>
+
+        <div class="bar-group">
+          <div class="bar-track hp-track">
+            <div id="hud-hp-fill" class="bar-fill hp-fill"></div>
+            <span id="hud-hp-text" class="bar-label">230 / 230 HP</span>
+          </div>
+        </div>
+
+        <div class="bar-group">
+          <div class="bar-track energy-track">
+            <div id="hud-energy-fill" class="bar-fill energy-fill"></div>
+            <span class="bar-label">ATOMIC PLASMA CORE</span>
+          </div>
+        </div>
+
+        <div class="bar-group">
+          <div class="bar-track bio-track">
+            <div id="hud-bio-fill" class="bar-fill bio-fill"></div>
+            <span id="hud-bio-text" class="bar-label">BIO-MASS: 0 / 120 → 13.0m</span>
+          </div>
+        </div>
+        <div id="hud-trample-hint" class="trample-hint">Crushes Trees, Streetlights &amp; Vehicles</div>
+      </div>
+
+      <!-- Top-Center: Mission Objectives + Final Boss Bar -->
+      <div class="hud-center-stack">
+        <div class="hud-panel hud-mission">
+          <div id="hud-op-title" class="mission-op-name">OP-01 • SUNNYVALE OUTSKIRTS</div>
+          <div class="bar-track destruct-track">
+            <div id="hud-destruct-fill" class="bar-fill destruct-fill"></div>
+            <span id="hud-destruct-text" class="bar-label">CITY DESTRUCTION: 0% / 58%</span>
+          </div>
+          <div id="hud-landmark-text" class="landmark-line">MILITARY RADAR: 0 / 1</div>
+        </div>
+
+        <div id="boss-hud" class="hud-panel boss-hud-panel hidden">
+          <div id="boss-phase-text" class="boss-title">COLOSSAL JAEGER: PROJECT AEGIS-ZERO • PHASE I</div>
+          <div class="bar-track boss-hp-track">
+            <div id="boss-hp-fill" class="bar-fill boss-hp-fill"></div>
+          </div>
+          <div id="boss-shield-banner" class="boss-shield-msg">⚡ QUANTUM SHIELD ACTIVE — DESTROY 3 PYLONS!</div>
+        </div>
+      </div>
+
+      <!-- Top-Right: Score, DNA, Combo & Military DEFCON Threat -->
+      <div class="hud-panel hud-score-panel">
+        <div class="score-top-line">
+          <div>
+            <div class="score-lbl">EXTINCTION SCORE</div>
+            <div id="hud-score-val" class="score-num">0</div>
+          </div>
+          <button id="btn-hud-pause" class="btn-pause" type="button">[P] PAUSE</button>
+        </div>
+
+        <div class="threat-dna-row">
+          <div class="threat-box">
+            <span id="hud-defcon-label" class="defcon-tag">DEFCON 5</span>
+            <span id="hud-threat-stars" class="threat-stars">★☆☆☆☆</span>
+          </div>
+          <div class="rundna-chip">🧬 <span id="hud-rundna-val">+0</span></div>
+        </div>
+
+        <div id="hud-combo-box" class="combo-box hidden">
+          <div id="hud-combo-val" class="combo-text">x5 COMBO</div>
+          <div class="combo-fuse-track"><div id="hud-combo-bar" class="combo-fuse-fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Dynamic Callout Banner -->
+    <div id="center-banner" class="center-banner hidden">
+      <div id="center-banner-title" class="banner-title">EVOLUTION!</div>
+      <div id="center-banner-sub" class="banner-sub">DISTRICT BEHEMOTH UNLOCKED</div>
+    </div>
+
+    <!-- Bottom Ability Hotbar + GNN Live Breaking News Ticker -->
+    <div class="hud-bottom-dock">
+      <div class="ability-hotbar">
+        <div class="ability-slot">
+          <div id="slot-primary-cd" class="slot-cd"></div>
+          <span class="slot-key">LMB / SPC</span>
+          <strong id="slot-primary-name" class="slot-name">Tectonic Jaws</strong>
+        </div>
+        <div class="ability-slot">
+          <div id="slot-secondary-cd" class="slot-cd"></div>
+          <span class="slot-key">RMB / E</span>
+          <strong id="slot-secondary-name" class="slot-name">Atomic Breath</strong>
+        </div>
+        <div class="ability-slot">
+          <div id="slot-leap-cd" class="slot-cd"></div>
+          <span class="slot-key">SHIFT</span>
+          <strong id="slot-leap-name" class="slot-name">Meteor Stomp</strong>
+        </div>
+        <div class="ability-slot">
+          <span class="slot-key">F</span>
+          <strong class="slot-name">Kick Vehicle</strong>
+        </div>
+        <div id="slot-ult-card" class="ability-slot slot-ult">
+          <div id="slot-ult-fill" class="slot-ult-charge"></div>
+          <span class="slot-key">R • ULTIMATE</span>
+          <strong id="slot-ult-name" class="slot-name">Meltdown Roar</strong>
+        </div>
+      </div>
+
+      <div class="news-ticker-bar">
+        <span class="gnn-badge">🔴 GNN LIVE</span>
+        <div class="ticker-viewport">
+          <div id="news-ticker-text" class="ticker-scroll">
+            BREAKING: Unidentified "Pocket-Sized" creature sighted near city limits!
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. MID-RUN ROGUELITE MUTATION OVERLAY -->
+  <section id="mutation-overlay" class="overlay-backdrop hidden">
+    <div class="mutation-panel">
+      <div class="mut-header-badge">🧬 SIZE CLASS EVOLUTION ACHIEVED!</div>
+      <h2>SELECT AN ADAPTIVE MUTATION</h2>
+      <p>Your cells surge with urban carbon &amp; atomic energy. Choose 1 permanent run mutation ([1], [2], or [3]):</p>
+      <div id="mutation-cards" class="mutation-cards-row"></div>
+    </div>
+  </section>
+
+  <!-- 6. PAUSE OVERLAY -->
+  <section id="pause-overlay" class="overlay-backdrop hidden">
+    <div class="pause-panel">
+      <div class="kicker-tag">SIMULATION SUSPENDED</div>
+      <h2>RAMPAGE PAUSED</h2>
+      <div class="pause-btns">
+        <button id="btn-pause-resume" class="btn-primary" type="button">▶ RESUME RAMPAGE [P]</button>
+        <button id="btn-pause-restart" class="btn-secondary" type="button">↻ RESTART OPERATION</button>
+        <button id="btn-pause-settings" class="btn-secondary" type="button">⚙️ AUDIO &amp; GRAPHICS</button>
+        <button id="btn-pause-quit" class="btn-ghost" type="button">ABORT TO MAIN MENU</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. OPERATION RESULT (VICTORY / DEFEAT) OVERLAY -->
+  <section id="result-overlay" class="overlay-backdrop hidden">
+    <div id="result-content" class="result-panel"></div>
+  </section>
+
+  <!-- 8. ACHIEVEMENT TOAST CONTAINER -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

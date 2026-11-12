@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pocket Kaiju: Gemini 4 Carbon vs Claude Fable 5.2</title>
+<meta name="description" content="Rematch: a full 3D kaiju game for Steam from one prompt. Gemini 4 Carbon vs Claude Fable 5.2. Play both in your browser.">
+<meta property="og:title" content="Pocket Kaiju: Gemini 4 Carbon vs Claude Fable 5.2">
+<meta property="og:description" content="A full 3D kaiju game from one prompt. Play both in your browser.">
+<meta property="og:image" content="https://kostikoneuro.github.io/gemini-carbon-vs-fable-5-2/4-pocket-kaiju/img/cover.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../assets/hamster.svg" type="image/svg+xml">
+<script>
+  /* language: ?lang=ru / #ru (also saved), else the saved choice, else English */
+  (function () {
+    var l = 'en', forced = false;
+    try { var s = localStorage.getItem('kk-lang'); if (s === 'ru' || s === 'en') l = s; } catch (e) {}
+    var q = /[?&]lang=(ru|en)\b/.exec(location.search); if (q) { l = q[1]; forced = true; }
+    var h = location.hash.slice(1).toLowerCase(); if (h === 'ru' || h === 'en') { l = h; forced = true; }
+    if (forced) { try { localStorage.setItem('kk-lang', l); } catch (e) {} }
+    document.documentElement.lang = l;
+    if (l === 'ru') document.documentElement.classList.add('ru');
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Manrope:wght@500;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f7f1e1; --paper2: #efe4c8; --card: #fffbf0; --ink: #101434; --muted: #5b6082;
+    --cyan: #4ed6f0; --yellow: #FFD400; --red: #e5342f; --good: #2fc973;
+    --carbon: #4C8DFF; --carbon-soft: #dfe9ff; --fable: #E8783F; --fable-soft: #ffe6d6;
+    --b: 4px; --r: 22px; --sh: 6px 6px 0 var(--ink);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  /* language switch: English by default, html.ru shows Russian */
+  html:not(.ru) .l-ru, html.ru .l-en { display: none !important; }
+  body {
+    margin: 0; color: var(--ink); font: 600 16px/1.55 Manrope, system-ui, "Segoe UI", sans-serif;
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(rgba(16,20,52,.07) 1.5px, transparent 1.5px),
+      linear-gradient(90deg, rgba(16,20,52,.07) 1.5px, transparent 1.5px);
+    background-size: 32px 32px;
+    overflow-x: hidden;
+  }
+  body::before { /* red notebook margin */
+    content: ""; position: fixed; top: 0; bottom: 0; left: 46px; width: 2px; background: rgba(229,52,47,.35); pointer-events: none; z-index: 0;
+  }
+  a { color: inherit; }
+  main { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 18px 16px 56px; }
+  h1, h2, h3 { font-family: Unbounded, Manrope, sans-serif; margin: 0; letter-spacing: -0.01em; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+  /* ---------- top bar ---------- */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .brand img { width: 52px; height: 48px; }
+  .brand b { font-family: Unbounded; font-weight: 900; font-size: 19px; line-height: 1.05; text-shadow: 2px 2px 0 var(--cyan); }
+  .brand small { display: block; font-size: 12px; color: var(--muted); font-weight: 700; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 3px solid var(--ink); border-radius: 999px;
+    background: var(--card); box-shadow: 3px 3px 0 var(--ink); font-weight: 800; font-size: 14px; text-decoration: none; white-space: nowrap;
+    transition: transform .12s, box-shadow .12s;
+  }
+  a.chip:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--ink); }
+  .chip.soon { background: var(--yellow); }
+  .lang { display: inline-flex; border: 3px solid var(--ink); border-radius: 999px; box-shadow: 3px 3px 0 var(--ink); overflow: hidden; background: var(--card); }
+  .lang button {
+    font: 900 13px/1 Unbounded, sans-serif; color: var(--ink); background: transparent; border: 0; padding: 9px 12px; cursor: pointer; letter-spacing: .02em;
+  }
+  .lang button + button { border-left: 3px solid var(--ink); }
+  .lang button[aria-pressed="true"] { background: var(--ink); color: var(--yellow); }
+  .lang button:focus-visible { outline: 3px solid var(--cyan); outline-offset: -3px; }
+
+  /* ---------- hero ---------- */
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 28px; align-items: center; margin-bottom: 34px; }
+  .kicker { display: inline-block; background: var(--ink); color: var(--yellow); font: 800 13px/1 "JetBrains Mono", monospace; letter-spacing: .06em; padding: 7px 10px; border-radius: 8px; transform: rotate(-2deg); margin-bottom: 14px; }
+  .hero h1 { font-weight: 900; font-size: clamp(34px, 6vw, 62px); line-height: 1.02; text-shadow: 4px 4px 0 var(--cyan); }
+  .hero h1 .vs { display: inline-block; font-size: .55em; background: var(--yellow); border: var(--b) solid var(--ink); border-radius: 14px; padding: 0 .28em; box-shadow: 4px 4px 0 var(--ink); text-shadow: none; transform: rotate(-6deg) translateY(-.12em); margin: 0 .08em; }
+  .hero h1 .c { color: var(--carbon); } .hero h1 .f { color: var(--fable); }
+  .lead { font-size: 18px; margin: 16px 0 16px; max-width: 34em; }
+  .rules { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .rule { display: inline-flex; align-items: center; gap: 7px; font-weight: 800; font-size: 14px; }
+  .tick { width: 24px; height: 24px; border: 3px solid var(--ink); border-radius: 7px; background: var(--card); box-shadow: 2px 2px 0 var(--ink); display: grid; place-items: center; color: var(--good); font-size: 15px; line-height: 1; }
+  .cover { position: relative; transform: rotate(2deg); }
+  .cover img { display: block; width: 100%; height: auto; border: var(--b) solid var(--ink); border-radius: var(--r); box-shadow: 8px 8px 0 var(--ink); background: #0b1020; }
+  .cover .tape { position: absolute; width: 96px; height: 28px; background: rgba(255,212,0,.82); border: 2px solid rgba(16,20,52,.25); top: -12px; left: 50%; transform: translateX(-50%) rotate(-4deg); }
+
+  /* ---------- scoreboard ---------- */
+  .board { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; gap: 18px; align-items: stretch; margin: 6px 0 40px; }
+  .fighter { position: relative; background: var(--card); border: var(--b) solid var(--ink); border-radius: var(--r); box-shadow: var(--sh); padding: 18px 18px 16px; display: flex; gap: 14px; align-items: center; }
+  .fighter.carbon { background: linear-gradient(160deg, var(--card) 55%, var(--carbon-soft)); }
+  .fighter.fable { background: linear-gradient(200deg, var(--card) 55%, var(--fable-soft)); flex-direction: row-reverse; text-align: right; }
+  .logo { flex: 0 0 auto; width: 74px; height: 74px; border: var(--b) solid var(--ink); border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 3px 3px 0 var(--ink); }
+  .logo img { width: 70%; height: 70%; object-fit: contain; }
+  .fighter h3 { font-weight: 900; font-size: 22px; line-height: 1.1; }
+  .fighter .maker { font-size: 13px; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+  .fighter .how { font-size: 13px; margin-top: 4px; }
+  .carbon h3 { color: var(--carbon); } .fable h3 { color: var(--fable); }
+  .score { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-width: 190px; }
+  .vsbadge { font-family: Unbounded; font-weight: 900; font-size: 22px; background: var(--red); color: #fff; border: var(--b) solid var(--ink); border-radius: 50%; width: 64px; height: 64px; display: grid; place-items: center; box-shadow: 4px 4px 0 var(--ink); transform: rotate(-10deg); }
+  .digits { font-family: Unbounded; font-weight: 900; font-size: 64px; line-height: 1; white-space: nowrap; }
+  .digits .c { color: var(--carbon); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 4px 4px 0 var(--ink); }
+  .digits .f { color: var(--fable); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 4px 4px 0 var(--ink); }
+  .digits .col { margin: 0 .12em; }
+  .verdict { font-weight: 800; font-size: 13px; text-align: center; }
+  .stamp { display: inline-block; font-family: Unbounded; font-weight: 900; color: var(--red); border: 4px solid var(--red); border-radius: 10px; padding: 3px 10px; transform: rotate(-7deg); font-size: 15px; letter-spacing: .02em; background: rgba(255,255,255,.55); box-shadow: inset 0 0 0 2px rgba(255,255,255,.6); }
+  .hamster-peek { position: absolute; width: 104px; right: -8px; top: -78px; transform: rotate(8deg); pointer-events: none; filter: drop-shadow(3px 3px 0 rgba(16,20,52,.18)); }
+
+  /* ---------- section headings ---------- */
+  .sec-h { display: flex; align-items: baseline; gap: 12px; margin: 0 0 16px; flex-wrap: wrap; }
+  .sec-h h2 { font-weight: 900; font-size: clamp(24px, 3.6vw, 34px); text-shadow: 3px 3px 0 var(--cyan); }
+  .sec-h > span { color: var(--muted); font-size: 14px; }
+
+  /* ---------- tests ---------- */
+  .test { position: relative; background: var(--card); border: var(--b) solid var(--ink); border-radius: var(--r); box-shadow: var(--sh); padding: 20px; margin-bottom: 28px; }
+  .test-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 12px; }
+  .num { flex: 0 0 auto; font-family: Unbounded; font-weight: 900; font-size: 26px; width: 52px; height: 52px; display: grid; place-items: center; background: var(--yellow); border: var(--b) solid var(--ink); border-radius: 14px; box-shadow: 3px 3px 0 var(--ink); transform: rotate(-5deg); }
+  .test h3 { font-weight: 900; font-size: clamp(19px, 2.6vw, 25px); line-height: 1.15; }
+  .test .desc { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+  .winner-tag { display: inline-block; margin-top: 8px; font-weight: 800; font-size: 13px; padding: 3px 10px; border: 3px solid var(--ink); border-radius: 999px; background: var(--good); color: var(--ink); }
+  .duel { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; }
+  .side { position: relative; border: 3px solid var(--ink); border-radius: 18px; padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .side.carbon { background: var(--carbon-soft); }
+  .side.fable { background: var(--fable-soft); }
+  .side-top { display: flex; align-items: center; gap: 10px; }
+  .side-top img { width: 34px; height: 34px; background: #fff; border: 3px solid var(--ink); border-radius: 50%; padding: 4px; }
+  .side-top b { font-family: Unbounded; font-weight: 800; font-size: 17px; }
+  .side.carbon .side-top b { color: #2a62d6; } .side.fable .side-top b { color: #c4561f; }
+  .side.win { box-shadow: 0 0 0 4px var(--yellow), 5px 5px 0 4px var(--ink); }
+  .crown { position: absolute; top: -18px; right: 12px; font-family: Unbounded; font-weight: 900; font-size: 13px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 10px; padding: 3px 9px; transform: rotate(4deg); box-shadow: 2px 2px 0 var(--ink); white-space: nowrap; }
+  .stats { display: flex; gap: 6px; flex-wrap: wrap; }
+  .stat { font: 700 13px/1 "JetBrains Mono", monospace; background: var(--card); border: 2px solid var(--ink); border-radius: 8px; padding: 5px 8px; }
+  .keys { font-size: 13.5px; line-height: 1.5; color: #2a2f52; }
+  kbd { font: 700 12px/1 Consolas, "Segoe UI Symbol", ui-monospace, Menlo, monospace; background: #fff; border: 2px solid var(--ink); border-bottom-width: 3px; border-radius: 6px; padding: 2px 5px; display: inline-block; margin: 1px 0; }
+  .btn {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; font-family: Unbounded; font-weight: 800; font-size: 16px; text-decoration: none;
+    background: var(--yellow); color: var(--ink); border: var(--b) solid var(--ink); border-radius: 14px; padding: 10px 18px; box-shadow: 4px 4px 0 var(--ink);
+    transition: transform .12s, box-shadow .12s; margin-top: auto;
+  }
+  .btn:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); }
+  .btn:active { transform: translate(3px,3px); box-shadow: 1px 1px 0 var(--ink); }
+  .btn .tab { font: 700 11px/1 Manrope, sans-serif; opacity: .7; }
+  video { display: block; width: 100%; aspect-ratio: 16/9; border: 3px solid var(--ink); border-radius: 12px; background: #000; }
+  details.prompt { margin-top: 14px; border: 3px dashed rgba(16,20,52,.45); border-radius: 14px; background: rgba(255,255,255,.5); }
+  details.prompt summary { cursor: pointer; padding: 10px 14px; font-weight: 800; list-style: none; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  details.prompt summary::-webkit-details-marker { display: none; }
+  details.prompt summary::before { content: "▸"; font-size: 14px; transition: transform .15s; }
+  details.prompt[open] summary::before { transform: rotate(90deg); }
+  details.prompt summary .plinks { margin-left: auto; display: inline-flex; gap: 12px; flex-wrap: wrap; }
+  details.prompt summary .plinks a { font-weight: 700; font-size: 13px; color: var(--muted); }
+  details.prompt .ptext { padding: 0 16px 14px; white-space: pre-wrap; font-size: 14.5px; line-height: 1.5; margin: 0; font-family: Manrope, sans-serif; font-weight: 600; }
+  details.prompt .pnote { padding: 0 16px; margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+  .note { font-size: 13.5px; color: var(--muted); margin: 10px 0 0; }
+
+  /* ---------- money ---------- */
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+  .tile { background: var(--card); border: var(--b) solid var(--ink); border-radius: 18px; box-shadow: 4px 4px 0 var(--ink); padding: 14px; }
+  .tile .lbl { font-size: 12.5px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .tile .val { font-family: Unbounded; font-weight: 900; font-size: 30px; line-height: 1.1; margin: 4px 0 2px; }
+  .tile .sub { font-size: 13px; }
+  .tile.c .val { color: var(--carbon); } .tile.f .val { color: var(--fable); }
+  .tile.y { background: var(--yellow); transform: rotate(-1.5deg); }
+  .tile.y .lbl { color: var(--ink); }
+  .table-wrap { background: var(--card); border: var(--b) solid var(--ink); border-radius: 18px; box-shadow: var(--sh); overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 560px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 2px solid rgba(16,20,52,.12); vertical-align: top; }
+  thead th { background: var(--ink); color: #fff; font-family: Unbounded; font-weight: 800; font-size: 14px; }
+  thead th.c { color: #9cc0ff; } thead th.f { color: #ffb48d; }
+  tbody tr:last-child td { border-bottom: none; background: rgba(255,212,0,.35); font-weight: 800; }
+  td small { color: var(--muted); display: block; font-size: 12px; }
+  .fine { font-size: 13.5px; color: var(--muted); margin: 12px 4px 0; }
+
+  /* ---------- how ---------- */
+  .how-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .how-card { background: var(--card); border: var(--b) solid var(--ink); border-radius: 18px; box-shadow: 4px 4px 0 var(--ink); padding: 16px 18px; }
+  .how-card h3 { font-weight: 800; font-size: 17px; margin-bottom: 6px; }
+  .how-card ul { margin: 0; padding-left: 20px; }
+  .how-card li { margin: 4px 0; font-size: 14.5px; }
+  .how-card.wide { grid-column: 1 / -1; }
+
+  footer { margin-top: 40px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; text-align: center; font-size: 14px; }
+  footer img { width: 64px; }
+  footer p { margin: 0; }
+
+  @media (max-width: 820px) {
+    .hero { grid-template-columns: 1fr; gap: 26px; }
+    .cover { max-width: 560px; }
+    .tiles { grid-template-columns: 1fr 1fr; }
+    .how-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    body::before { left: 10px; }
+    .board { grid-template-columns: 1fr; gap: 14px; }
+    .fighter.fable { flex-direction: row; text-align: left; }
+    .score { flex-direction: row; min-width: 0; gap: 14px; }
+    .vsbadge { width: 54px; height: 54px; font-size: 18px; }
+    .digits { font-size: 52px; }
+    .hamster-peek { width: 80px; top: -60px; right: -4px; }
+    .duel { grid-template-columns: 1fr; gap: 22px; }
+    .test { padding: 16px 14px; }
+    .tile .val { font-size: 24px; }
+    .lead { font-size: 16.5px; }
+    table { min-width: 0; font-size: 13px; }
+    th, td { padding: 8px 7px; }
+    thead th { font-size: 12px; }
+    td small { font-size: 11px; }
+    .chip { padding: 5px 10px; font-size: 13px; }
+    .lang button { padding: 8px 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  .shot { display:block; width:100%; aspect-ratio:16/9; object-fit:cover; border:3px solid var(--ink); border-radius:12px; background:#000; }
+  .warn { background: var(--yellow); border: var(--b) solid var(--ink); border-radius: 16px; box-shadow: 4px 4px 0 var(--ink); padding: 12px 16px; font-weight: 800; margin: 0 0 26px; }
+  .back { display:inline-flex; align-items:center; gap:6px; font-weight:800; margin-bottom:14px; }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <a class="brand" href="https://www.youtube.com/@kosti_neuro" target="_blank" rel="noopener">
+      <img src="../assets/hamster.svg" alt="Nerd hamster">
+      <span><b>Ботанутый Костя</b><small><span class="l-en">AI model battles · YouTube</span><span class="l-ru">тесты нейросетей · YouTube</span></small></span>
+    </a>
+    <nav class="chips">
+      <div class="lang" role="group" aria-label="Language / Язык">
+        <button type="button" data-set-lang="en" aria-pressed="true">EN</button><button type="button" data-set-lang="ru" aria-pressed="false">RU</button>
+      </div>
+      <span class="chip soon">🎬 <span class="l-en">Video: coming soon</span><span class="l-ru">Видео: скоро</span></span>
+      <a class="chip" href="https://t.me/kostik_neuro" target="_blank" rel="noopener">✈️ Telegram</a>
+      <a class="chip" href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2" target="_blank" rel="noopener">⌨️ GitHub</a>
+    </nav>
+  </header>
+
+  <a class="back" href="../">← <span class="l-en">Round 1: race, diorama, intro (2:1 Carbon)</span><span class="l-ru">Первый батл: гонка, диорама, заставка (2:1 Carbon)</span></a>
+
+  <section class="hero">
+    <div>
+      <div class="kicker"><span class="l-en">REMATCH · TEST 4</span><span class="l-ru">РЕВАНШ · ТЕСТ 4</span></div>
+      <h1><span class="c">Pocket</span> <span class="f">Kaiju</span></h1>
+      <p class="lead l-en">A full 3D game “for Steam, not a demo” from one prompt: you are a giant monster smashing a city. The models picked models, sounds and music themselves from the free <a href="https://patch.gg" target="_blank" rel="noopener">patch.gg</a> library.</p>
+      <p class="lead l-ru">Полноценная 3D-игра «для Steam, а не демка» из одного промпта: ты гигантский монстр и громишь город. Модели, звуки и музыку нейросети сами взяли из бесплатной библиотеки <a href="https://patch.gg" target="_blank" rel="noopener">patch.gg</a>.</p>
+      <div class="rules">
+        <span class="rule"><span class="tick">✓</span><span class="l-en">1 prompt</span><span class="l-ru">1 промпт</span></span>
+        <span class="rule"><span class="tick">✓</span><span class="l-en">0 fixes</span><span class="l-ru">0 правок</span></span>
+        <span class="rule"><span class="tick">✓</span><span class="l-en">keyboard + mouse</span><span class="l-ru">клавиатура + мышь</span></span>
+      </div>
+    </div>
+    <div class="cover"><span class="tape"></span><img src="img/cover.jpg" width="1280" height="720" alt="Pocket Kaiju by Carbon and by Fable"></div>
+  </section>
+
+  <section class="board" aria-label="Score">
+    <img class="hamster-peek" src="../assets/hamster.svg" alt="">
+    <div class="fighter carbon">
+      <div class="logo"><img src="../assets/gemini.png" alt="Gemini"></div>
+      <div><div class="maker">Google</div><h3>Gemini 4 Carbon</h3><div class="how">Antigravity · thinking High</div></div>
+    </div>
+    <div class="score">
+      <div class="vsbadge">VS</div>
+      <div>
+        <div class="digits"><span class="c">2</span><span class="col">:</span><span class="f">2</span></div>
+        <div class="verdict"><span class="stamp"><span class="l-en">KAIJU TO FABLE</span><span class="l-ru">KAIJU ЗА FABLE</span></span></div>
+      </div>
+    </div>
+    <div class="fighter fable">
+      <div class="logo"><img src="../assets/claude.png" alt="Claude"></div>
+      <div><div class="maker">Anthropic</div><h3>Claude Fable 5.2</h3><div class="how">opencode · CometAPI</div></div>
+    </div>
+  </section>
+
+  <p class="warn">⚠️ <span class="l-en">Heavy games: 65 and 90 MB, the first load takes 10–30 seconds. Play on a computer with a keyboard and mouse. Click once in the game to turn the sound on.</span><span class="l-ru">Игры тяжёлые: 65 и 90 МБ, первая загрузка 10–30 секунд. Играть на компьютере с клавиатурой и мышью. Кликни в игре один раз, чтобы включился звук.</span></p>
+
+  <article class="test" id="kaiju">
+    <div class="test-head">
+      <div class="num">4</div>
+      <div>
+        <h3><span class="l-en">Pocket Kaiju: a full game from one prompt</span><span class="l-ru">Pocket Kaiju: полноценная игра из одного промпта</span></h3>
+        <p class="desc l-en">Menus, levels, upgrades, a final boss. Buildings break into pieces, the army fights back, you grow with every block.</p>
+        <p class="desc l-ru">Меню, уровни, прокачка, финальный босс. Дома рушатся на куски, армия отбивается, а ты растёшь с каждым кварталом.</p>
+        <span class="winner-tag">🏆 <span class="l-en">Round to Fable</span><span class="l-ru">Раунд за Fable</span></span>
+      </div>
+    </div>
+    <div class="duel">
+      <div class="side carbon">
+        <div class="side-top"><img src="../assets/gemini.png" alt=""><b>Gemini 4 Carbon</b></div>
+        <img class="shot" src="img/carbon.jpg" alt="Carbon's Pocket Kaiju" loading="lazy">
+        <div class="stats"><span class="stat">⏱ 68:13</span><span class="stat">💸 $5.68</span><span class="stat">~6 900 <span class="l-en">lines</span><span class="l-ru">строк</span></span></div>
+        <div class="keys l-en">3 kaiju (T-rex, ape, scorpion), 4 operations + endless mode, mech boss AEGIS-ZERO, Evolution Lab, mutations, 12 achievements. <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move, <kbd>Space</kbd>/click smash, hold <kbd>E</kbd>/right click, <kbd>Shift</kbd> leap, <kbd>F</kbd> kick, <kbd>R</kbd> ultimate, <kbd>Q</kbd>/<kbd>C</kbd> camera, <kbd>1</kbd>–<kbd>3</kbd> mutations, <kbd>Esc</kbd> pause.</div>
+        <div class="keys l-ru">3 кайдзю (T-rex, горилла, скорпион), 4 операции + бесконечный режим, босс-мех AEGIS-ZERO, Лаборатория эволюции, мутации, 12 достижений. <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ходьба, <kbd>Space</kbd>/клик удар, держать <kbd>E</kbd>/правую кнопку, <kbd>Shift</kbd> прыжок, <kbd>F</kbd> пинок, <kbd>R</kbd> ультимейт, <kbd>Q</kbd>/<kbd>C</kbd> камера, <kbd>1</kbd>–<kbd>3</kbd> мутации, <kbd>Esc</kbd> пауза.</div>
+        <a class="btn" href="carbon/" target="_blank" rel="noopener">▶ <span class="l-en">Play</span><span class="l-ru">Играть</span> <span class="tab">↗ <span class="l-en">new tab</span><span class="l-ru">новая вкладка</span></span></a>
+      </div>
+      <div class="side fable win">
+        <span class="crown">🏆 <span class="l-en">Winner</span><span class="l-ru">Победа</span></span>
+        <div class="side-top"><img src="../assets/claude.png" alt=""><b>Claude Fable 5.2</b></div>
+        <img class="shot" src="img/fable.jpg" alt="Fable's Pocket Kaiju" loading="lazy">
+        <div class="stats"><span class="stat">⏱ 2:27:00</span><span class="stat">💸 $43</span><span class="stat">~6 000 <span class="l-en">lines</span><span class="l-ru">строк</span></span></div>
+        <div class="keys l-en">5 levels from a small town to Fortress Zero, 2 bosses (Skorpius and MK-TITAN), 3 kaiju (two unlock as you play), missions with stars, Evolution Lab, an ending with credits. <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move, click/<kbd>F</kbd> bite, right click/<kbd>E</kbd> breath, <kbd>Space</kbd> stomp, <kbd>Shift</kbd> sprint, <kbd>Q</kbd> roar, <kbd>R</kbd> rampage, <kbd>P</kbd> pause, <kbd>M</kbd> sound.</div>
+        <div class="keys l-ru">5 уровней от городка до Fortress Zero, 2 босса (Skorpius и MK-TITAN), 3 кайдзю (два открываются по ходу), миссии со звёздами, Лаборатория эволюции, концовка с титрами. <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ходьба, клик/<kbd>F</kbd> укус, правая кнопка/<kbd>E</kbd> дыхание, <kbd>Space</kbd> топот, <kbd>Shift</kbd> бег, <kbd>Q</kbd> рёв, <kbd>R</kbd> ярость, <kbd>P</kbd> пауза, <kbd>M</kbd> звук.</div>
+        <a class="btn" href="fable/" target="_blank" rel="noopener">▶ <span class="l-en">Play</span><span class="l-ru">Играть</span> <span class="tab">↗ <span class="l-en">new tab</span><span class="l-ru">новая вкладка</span></span></a>
+      </div>
+    </div>
+    <details class="prompt">
+      <summary>📝 <span class="l-en">The prompt</span><span class="l-ru">Промпт</span>
+        <span class="plinks"><a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/prompts/4-pocket-kaiju.md" target="_blank" rel="noopener">RU original</a><a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/prompts/en/4-pocket-kaiju.md" target="_blank" rel="noopener">EN translation</a></span></summary>
+      <p class="pnote l-en">English translation. The models got the Russian original.</p>
+      <p class="ptext l-en">Make a 3D browser game "Pocket Kaiju": you are a giant monster smashing a city.
+
+Buildings crumble into pieces, people and cars flee, the army sends tanks and helicopters, and you grow with every block you destroy. What matters most is the feeling of enormous power and juicy destruction.
+
+Imagine this is a full game for Steam, not a demo: menus, levels, upgrades, a final boss. Surprise me.
+
+Take models, sounds and music from the patch.gg library, not boxes made in code: it has 50,000 free assets and needs no sign-in (`npx @patchgg/cli assets search`). The result is a folder with the game and an index.html. All text in the game is in English.
+
+Don't ask questions: build it, play it yourself, fix what's broken.</p>
+      <p class="ptext l-ru">Сделай браузерную 3D-игру «Pocket Kaiju»: ты - гигантский монстр, который громит город.
+
+Дома рушатся на куски, люди и машины разбегаются, армия шлёт танки и вертолёты, а ты растёшь с каждым разрушенным кварталом. Главное - ощущение огромной силы и сочное разрушение.
+
+Представь, что это полноценная игра для Steam, а не демка: меню, уровни, прокачка, финальный босс. Удиви меня.
+
+Модели, звуки и музыку бери из библиотеки patch.gg, а не кубики из кода: там 50 000 бесплатных ассетов, вход не нужен (`npx @patchgg/cli assets search`). Итог - папка с игрой и index.html. Весь текст в игре - по-английски.
+
+Не задавай вопросов: собери, сыграй сам, почини, что сломано.</p>
+    </details>
+  </article>
+
+  <div class="sec-h" id="how"><h2><span class="l-en">How it was run</span><span class="l-ru">Как запускали</span></h2></div>
+  <div class="how-grid">
+    <div class="how-card">
+      <h3 style="color:#2a62d6">Gemini 4 Carbon</h3>
+      <ul class="l-en">
+        <li>Google's <b>Antigravity</b> app, thinking <b>High</b>.</li>
+        <li>$5.68 at API list prices ($2 in / $0.10 cache / $10 out per 1M). Plus its own browser helper on Gemini 3.8 Flash that played the game for 19 minutes: up to $0.68 more.</li>
+        <li>Took 64 models, 29 sounds and 4 music tracks from patch.gg.</li>
+      </ul>
+      <ul class="l-ru">
+        <li>Приложение Google <b>Antigravity</b>, thinking <b>High</b>.</li>
+        <li>$5.68 по прайсу API ($2 вход / $0.10 кэш / $10 выход за 1M). Плюс свой браузерный помощник на Gemini 3.8 Flash, который 19 минут играл в игру: ещё до $0.68.</li>
+        <li>Взял из patch.gg 64 модели, 29 звуков и 4 музыкальных трека.</li>
+      </ul>
+    </div>
+    <div class="how-card">
+      <h3 style="color:#c4561f">Claude Fable 5.2</h3>
+      <ul class="l-en">
+        <li><b>opencode</b> through <b>CometAPI</b>, with a headless Playwright browser to play its own game.</li>
+        <li>$43 actually charged by CometAPI (about $54 at Anthropic's list price).</li>
+        <li>One message mid-run: “the budget is running out, start wrapping up”. Not a fix.</li>
+      </ul>
+      <ul class="l-ru">
+        <li><b>opencode</b> через <b>CometAPI</b>, с headless-браузером Playwright, чтобы играть в свою игру.</li>
+        <li>$43 реально списал CometAPI (по прайсу Anthropic было бы около $54).</li>
+        <li>Одно сообщение по ходу: «бюджет кончается, закругляйся». Это не правка.</li>
+      </ul>
+    </div>
+    <div class="how-card wide">
+      <h3><span class="l-en">Assets</span><span class="l-ru">Ассеты</span></h3>
+      <p class="l-en" style="margin:0">All models, sounds and music come from <a href="https://patch.gg" target="_blank" rel="noopener">patch.gg</a> under CC0 and CC BY 4.0. The full list with authors is in each game's CREDITS.md: <a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/4-pocket-kaiju/carbon/CREDITS.md" target="_blank" rel="noopener">Carbon</a>, <a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/4-pocket-kaiju/fable/CREDITS.md" target="_blank" rel="noopener">Fable</a>.</p>
+      <p class="l-ru" style="margin:0">Все модели, звуки и музыка из <a href="https://patch.gg" target="_blank" rel="noopener">patch.gg</a> по лицензиям CC0 и CC BY 4.0. Полный список с авторами в CREDITS.md каждой игры: <a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/4-pocket-kaiju/carbon/CREDITS.md" target="_blank" rel="noopener">Carbon</a>, <a href="https://github.com/KostiKoNeuro/gemini-carbon-vs-fable-5-2/blob/main/4-pocket-kaiju/fable/CREDITS.md" target="_blank" rel="noopener">Fable</a>.</p>
+    </div>
+  </div>
+
+  <footer>
+    <img src="../assets/hamster.svg" alt="">
+    <p class="l-en">Made for the YouTube channel <a href="https://www.youtube.com/@kosti_neuro" target="_blank" rel="noopener"><b>Ботанутый Костя</b></a> · <a href="https://t.me/kostik_neuro" target="_blank" rel="noopener">Telegram</a><br>Scores and opinions are my own. The games were written by the models; I only added the “← back” button.</p>
+    <p class="l-ru">Сделано для YouTube-канала <a href="https://www.youtube.com/@kosti_neuro" target="_blank" rel="noopener"><b>Ботанутый Костя</b></a> · <a href="https://t.me/kostik_neuro" target="_blank" rel="noopener">Telegram</a><br>Оценки и мнения мои. Код игр написан моделями, я добавил только кнопку «← назад».</p>
+  </footer>
+</main>
+<script>
+  (function () {
+    var TITLES = { en: 'Pocket Kaiju: Gemini 4 Carbon vs Claude Fable 5.2', ru: 'Pocket Kaiju: Gemini 4 Carbon vs Claude Fable 5.2 · реванш' };
+    var btns = document.querySelectorAll('[data-set-lang]');
+    function apply(l, save) {
+      document.documentElement.lang = l;
+      document.documentElement.classList.toggle('ru', l === 'ru');
+      document.title = TITLES[l];
+      for (var i = 0; i < btns.length; i++) btns[i].setAttribute('aria-pressed', String(btns[i].getAttribute('data-set-lang') === l));
+      if (save) { try { localStorage.setItem('kk-lang', l); } catch (e) {} }
+    }
+    for (var i = 0; i < btns.length; i++) btns[i].addEventListener('click', function () { apply(this.getAttribute('data-set-lang'), true); });
+    apply(document.documentElement.lang === 'ru' ? 'ru' : 'en', false);
+  })();
+</script>
+</body>
+</html>

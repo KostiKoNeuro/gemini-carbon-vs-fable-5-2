@@ -1,0 +1,64 @@
+[ 3300183ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/ambulance.glb:0
+[ 3300185ms] Error: HTTP 404 for models/cars/ambulance.glb
+    at http://localhost:8765/_dev/frac.js:33832:24
+    at async http://localhost:8765/_dev/frac.js:33884:19
+    at async worker (http://localhost:8765/_dev/frac.js:33874:7)
+    at async Promise.all (index 0)
+    at async runPool (http://localhost:8765/_dev/frac.js:33878:3)
+    at async loadAll (http://localhost:8765/_dev/frac.js:33904:3)
+    at async http://localhost:8765/_dev/frac.js:34388:1
+[ 3300183ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-bumper.glb:0
+[ 3300184ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-door.glb:0
+[ 3300184ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-drivetrain.glb:0
+[ 3300184ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-plate-a.glb:0
+[ 3300184ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-plate-b.glb:0
+[ 3300184ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-spoiler-a.glb:0
+[ 3300184ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-tire.glb:0
+[ 3300184ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/delivery.glb:0
+[ 3300184ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/firetruck.glb:0
+[ 3399766ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/ambulance.glb:0
+[ 3399768ms] Error: HTTP 404 for models/cars/ambulance.glb
+    at http://localhost:8765/_dev/frac.js:33832:24
+    at async http://localhost:8765/_dev/frac.js:33884:19
+    at async worker (http://localhost:8765/_dev/frac.js:33874:7)
+    at async Promise.all (index 0)
+    at async runPool (http://localhost:8765/_dev/frac.js:33878:3)
+    at async loadAll (http://localhost:8765/_dev/frac.js:33904:3)
+    at async http://localhost:8765/_dev/frac.js:34388:1
+[ 3399767ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-bumper.glb:0
+[ 3399767ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-door.glb:0
+[ 3399767ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-drivetrain.glb:0
+[ 3399767ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-plate-a.glb:0
+[ 3399767ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-plate-b.glb:0
+[ 3399767ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-spoiler-a.glb:0
+[ 3399768ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/debris-tire.glb:0
+[ 3399768ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/delivery.glb:0
+[ 3399768ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/_dev/assets/models/cars/firetruck.glb:0
+[ 6711555ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36649
+[ 6711555ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36649
+[ 6711558ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36745
+[ 6712976ms] [WARNING] THREE.WebGLProgram: Program Info Log: (221,91-147): warning X4122: sum of 0.998047 and -1.49272e-017 cannot be represented accurately in double precision
+(220,41-69): warning X4122: sum of 1 and -7.46362e-018 cannot be represented accurately in double precision
+(221,92-120): warning X4122: sum of 1 and -7.46362e-018 cannot be represented accurately in double precision
+(220,41-69): warning X4122: sum of 1 and -8.33219e-019 cannot be represented accurately in double precision
+(221,92-120): warning X4122: sum of 1 and -8.33219e-019 cannot be represented accurately in double precision
+(207,10-73): warning X4008: floating point division by zero
+(207,10-73): warning X4008: floating point division by zero
+(207,10-73): warning X4008: floating point division by zero @ http://localhost:8765/game.js:196
+[ 6713476ms] [WARNING] [.WebGL-0x58ac001f6800] GL_INVALID_OPERATION: Invalid: Vertex buffer is not big enough for the draw call. @ http://localhost:8765/index.html:0
+[ 6713476ms] [WARNING] [.WebGL-0x58ac001f6800] GL_INVALID_OPERATION: Invalid: Vertex buffer is not big enough for the draw call. @ http://localhost:8765/index.html:0
+[ 6713550ms] [WARNING] [.WebGL-0x58ac001f6800] GL_INVALID_OPERATION: Invalid: Vertex buffer is not big enough for the draw call. @ http://localhost:8765/index.html:0
+[ 6713576ms] [WARNING] [.WebGL-0x58ac001f6800] GL_INVALID_OPERATION: Invalid: Vertex buffer is not big enough for the draw call. @ http://localhost:8765/index.html:0
+[ 6714765ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36649
+[ 6714994ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36649
+[ 6717013ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36713
+[ 6717013ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36713
+[ 6717013ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36713
+[ 6717013ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36713
+[ 6717014ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36713
+[ 6717014ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36649
+[ 6717014ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36649
+[ 6717014ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36649
+[ 6717014ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36649
+[ 6717014ms] [WARNING] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio @ http://localhost:8765/game.js:36649
+[ 6731100ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8765/favicon.ico:0

@@ -1,0 +1,607 @@
+{
+  "project": "pocket/pocket-kaiju",
+  "version": "1.0.0",
+  "recipe": {
+    "credits": [
+      {
+        "files": "assets/models/animatedTRexWith7.glb",
+        "license": "CC0-1.0",
+        "source": "https://github.com/patch-gg/anymove",
+        "author": "anymove"
+      },
+      {
+        "files": "assets/models/animatedGiantApeWith5.glb",
+        "license": "CC0-1.0",
+        "source": "https://github.com/patch-gg/anymove",
+        "author": "anymove"
+      },
+      {
+        "files": "assets/models/animatedGiantScorpionWith4.glb",
+        "license": "CC0-1.0",
+        "source": "https://github.com/patch-gg/anymove",
+        "author": "anymove"
+      },
+      {
+        "files": "assets/models/animatedTwoLeggedMechWith.glb",
+        "license": "CC0-1.0",
+        "source": "https://github.com/patch-gg/anymove",
+        "author": "anymove"
+      },
+      {
+        "files": "assets/models/buildingSkyscraperA.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-commercial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingSkyscraperB.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-commercial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingSkyscraperC.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-commercial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingSkyscraperD.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-commercial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingSkyscraperE.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-commercial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingA.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-commercial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingC.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-commercial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingF.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-commercial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingH.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-commercial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingJ.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-commercial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingL.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-commercial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingN.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-commercial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingTypeF.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-suburban",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingTypeH.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-suburban",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingTypeJ.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-suburban",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingTypeL.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-suburban",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingTypeN.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-suburban",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingTypeP.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-suburban",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingA2.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-industrial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingB.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-industrial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/buildingE.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-industrial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/detailTankLarge.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-industrial",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/fuelFarmTank.glb",
+        "license": "CC-BY-4.0",
+        "source": "https://polyfork.dev/asset/fuel-farm-tank-ed67f0",
+        "author": "Polyfork"
+      },
+      {
+        "files": "assets/models/radarAerialMast.glb",
+        "license": "CC-BY-4.0",
+        "source": "https://polyfork.dev/asset/radar-aerial-mast-f88914",
+        "author": "Polyfork"
+      },
+      {
+        "files": "assets/models/towerRoundCrystals.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/tower-defense-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/barrel.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/survival-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/collapseRubbleMound.glb",
+        "license": "CC-BY-4.0",
+        "source": "https://polyfork.dev/asset/collapse-rubble-mound-4fbfed",
+        "author": "Polyfork"
+      },
+      {
+        "files": "assets/models/masonryRubbleChunk.glb",
+        "license": "CC-BY-4.0",
+        "source": "https://polyfork.dev/asset/masonry-rubble-chunk-c4da0b",
+        "author": "Polyfork"
+      },
+      {
+        "files": "assets/models/rubbleScatterDecal.glb",
+        "license": "CC-BY-4.0",
+        "source": "https://polyfork.dev/asset/rubble-scatter-decal-61332b",
+        "author": "Polyfork"
+      },
+      {
+        "files": "assets/models/debris.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/graveyard-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/debrisTire.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/car-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/debrisDoorWindow.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/car-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/debrisBumper.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/car-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/debrisPlateA.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/car-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/treeDetailed.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/nature-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/treeDefault.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/nature-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/lightCurved.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-roads",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/lightSquareDouble.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-roads",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/trafficLight.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/city-kit-roads",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/policeBarricade.glb",
+        "license": "CC-BY-4.0",
+        "source": "https://polyfork.dev/asset/police-barricade-0bbf37",
+        "author": "Polyfork"
+      },
+      {
+        "files": "assets/models/characterMaleA.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/mini-characters",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/characterMaleB.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/mini-characters",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/characterFemaleA.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/mini-characters",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/characterFemaleB.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/mini-characters",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/policeOfficer.glb",
+        "license": "CC-BY-4.0",
+        "source": "https://polyfork.dev/asset/police-officer-1cc379",
+        "author": "Polyfork"
+      },
+      {
+        "files": "assets/models/sedan.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/car-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/sedanSports.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/car-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/taxi.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/car-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/suv.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/car-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/delivery.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/car-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/truck.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/car-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/police.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/car-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/ambulance.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/car-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/firetruck.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/car-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/mediumTank.glb",
+        "license": "CC-BY-4.0",
+        "source": "https://polyfork.dev/asset/medium-tank-65da6b",
+        "author": "Polyfork"
+      },
+      {
+        "files": "assets/models/helicopter.glb",
+        "license": "CC-BY-4.0",
+        "source": "https://polyfork.dev/asset/helicopter-9d1986",
+        "author": "Polyfork"
+      },
+      {
+        "files": "assets/models/businessJet.glb",
+        "license": "CC-BY-4.0",
+        "source": "https://polyfork.dev/asset/business-jet-684611",
+        "author": "Polyfork"
+      },
+      {
+        "files": "assets/models/defenseTurret.glb",
+        "license": "CC-BY-4.0",
+        "source": "https://polyfork.dev/asset/defense-turret-12ba8d",
+        "author": "Polyfork"
+      },
+      {
+        "files": "assets/models/turretDouble.glb",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/space-kit",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/models/missile.glb",
+        "license": "CC-BY-4.0",
+        "source": "https://polyfork.dev/asset/missile-0717d1",
+        "author": "Polyfork"
+      },
+      {
+        "files": "assets/audio/explosionCrunch1MediumLength.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/sci-fi-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/lowFrequencyExplosion1Long.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/sci-fi-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/glassImpactHeavy1Short.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/impact-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/glassImpactMedium1Medium.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/impact-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/metalImpactHeavy1Short.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/impact-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/plateImpactHeavy1Medium.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/impact-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/punchImpactHeavy1Medium.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/impact-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/woodImpactHeavy1Medium.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/impact-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/miningImpact1MediumLength.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/impact-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/footstepOnConcrete1Short.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/impact-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/laserLarge1MediumLength.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/sci-fi-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/laserSmall1ShortSoft.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/sci-fi-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/thrusterFire1LongMedium.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/sci-fi-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/spaceEngineLarge1Long.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/sci-fi-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/spaceEngineLow1Long.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/sci-fi-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/powerUp10MediumLength.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/digital-audio",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/phaserUp1MediumLength.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/digital-audio",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/zapThreeToneUpLong.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/digital-audio",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/callForBackupMaleMilitary.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/voiceover-pack",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/getDownFemaleMilitary.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/voiceover-pack",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/fireInTheHoleMale.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/voiceover-pack",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/beginFightingAnnouncer.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/voiceover-pack-fighter",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/finalRoundFightingAnnouncer.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/voiceover-pack-fighter",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/flawlessVictoryFightingAnnouncer.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/voiceover-pack-fighter",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/gameOverFightingAnnouncer.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/voiceover-pack-fighter",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/click1ShortSoft.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/interface-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/confirmation1ShortLoud.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/interface-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/maximize1ShortMedium.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/interface-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/audio/error1ShortMedium.ogg",
+        "license": "CC0-1.0",
+        "source": "https://kenney.nl/assets/interface-sounds",
+        "author": "Kenney"
+      },
+      {
+        "files": "assets/music/ancientEvilAwakens.ogg",
+        "license": "CC0-1.0",
+        "source": "https://opengameart.org/content/jrpg-pack-3-evil",
+        "author": "OpenGameArt.org"
+      },
+      {
+        "files": "assets/music/stageFFaster.ogg",
+        "license": "CC0-1.0",
+        "source": "https://opengameart.org/content/12-music-loops",
+        "author": "OpenGameArt.org"
+      },
+      {
+        "files": "assets/music/to100.ogg",
+        "license": "CC-BY-4.0",
+        "source": "https://opengameart.org/content/huge-loop-box-2-heavy-bass-music-for-action-racing-fighting-rpg-adventure-and-cutscenes",
+        "author": "OpenGameArt.org"
+      },
+      {
+        "files": "assets/music/epicBossBattle.ogg",
+        "license": "CC0-1.0",
+        "source": "https://opengameart.org/content/boss-battle-music",
+        "author": "OpenGameArt.org"
+      },
+      {
+        "files": "vendor/three/**",
+        "license": "MIT",
+        "source": "https://github.com/mrdoob/three.js",
+        "author": "Three.js Authors"
+      }
+    ],
+    "test": {
+      "checks": [
+        "game-loaded",
+        "building-crumbled",
+        "kaiju-grew"
+      ],
+      "move_keys": [
+        "KeyW",
+        "ArrowUp"
+      ]
+    }
+  }
+}
